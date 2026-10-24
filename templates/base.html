@@ -56,6 +56,11 @@
         <a href="{{ url_for('settings_page') }}" class="{{ 'active' if request.endpoint == 'settings_page' }}">
           {{ icon("settings") }} <span>Settings</span>
         </a>
+        {% if is_admin %}
+        <a href="{{ url_for('admin') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin') }}">
+          {{ icon("shield") }} <span>Admin</span>
+        </a>
+        {% endif %}
       </nav>
 
       <div class="sidebar-footer">

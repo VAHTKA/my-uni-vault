@@ -731,6 +731,21 @@ h1, h2, h3 { margin: 0; line-height: 1.25; }
 .btn-google .icon { width: 20px; height: 20px; }
 img.avatar { object-fit: cover; background: var(--surface-2); }
 
+/* ---------- admin ---------- */
+.admin-stats { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+.admin-card { padding: 18px 20px; overflow: visible; }
+.admin-card-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.admin-card-value { font-size: 24px; font-weight: 700; margin: 4px 0 10px; }
+.admin-card-value small { font-size: 14px; font-weight: 400; }
+.admin-card .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.quota-bar.mini { height: 5px; width: 90px; margin-top: 4px; }
+.small-avatar { width: 30px; height: 30px; font-size: 13px; }
+.user-cell { display: flex; flex-direction: column; min-width: 0; }
+.user-cell small { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-user .card { padding: 20px 24px; }
+.admin-user .preview-meta { margin-bottom: 16px; }
+@media (max-width: 800px) { .admin-stats { grid-template-columns: 1fr; } }
+
 /* ---------- legal pages ---------- */
 .legal { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
 .legal-brand { padding: 0 0 16px; }

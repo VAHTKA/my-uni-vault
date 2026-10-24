@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ u.name or u.email or "User" }} - Admin{% endblock %}
+
+{% block topbar %}
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="{{ url_for('admin') }}">Admin</a>
+  {{ icon("chevron", "icon sep") }}
+  <span class="current">{{ u.name or u.email or "Unknown user" }}</span>
+</nav>
+<div class="actions">
+  <a class="btn" href="{{ url_for('admin') }}">Back</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="settings admin-user">
+  <section class="card">
+    <div class="preview-meta">
+      {% if u.picture %}
+      <img class="avatar" src="{{ u.picture }}" alt="" referrerpolicy="no-referrer">
+      {% else %}
+      <span class="avatar">{{ (u.name or u.email or "?")[:1] | upper }}</span>
+      {% endif %}
+      <div>
+        <div class="preview-name">{{ u.name or "Unknown user" }}{% if is_self %} <span class="badge">You</span>{% endif %}</div>
+        <div class="muted">{{ u.email or "Email shows after their next sign-in" }}</div>
+      </div>
+    </div>
+    <dl class="info-list">
+      <dt>Storage</dt><dd>{{ u.used }} ({{ u.percent }}% of their limit)</dd>
+      <dt>Files</dt><dd>{{ u.files }}</dd>
+      <dt>Joined</dt><dd>{{ u.joined or "—" }}</dd>
+      <dt>Last sign-in</dt><dd>{{ u.last_seen or "—" }}</dd>
+      <dt>Vault ID</dt><dd class="muted">{{ u.id }}</dd>
+    </dl>
+  </section>
+</div>
+
+<div class="section-title">Files ({{ file_rows | length }})</div>
+{% if file_rows %}
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th class="hide-sm">Folder</th>
+        <th>Size</th>
+        <th class="hide-sm">Uploaded</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in file_rows %}
+      <tr>
+        <td class="name">
+          <span class="file-name">
+            <span class="file-icon kind-{{ f.kind }}">{{ icon("file") }}</span>
+            <span>{{ f.name }}</span>
+          </span>
+        </td>
+        <td class="num hide-sm">{{ f.folder or "—" }}</td>
+        <td class="num">{{ f.size }}</td>
+        <td class="num hide-sm">{{ f.uploaded }}</td>
+        <td class="row-actions">
+          <a class="icon-btn" href="{{ url_for('admin_open_file', uid=u.id, path=f.path) }}" target="_blank" rel="noopener"
+             title="Open" aria-label="Open {{ f.name }}">{{ icon("external") }}</a>
+          <form method="POST" action="{{ url_for('admin_delete_file', uid=u.id) }}"
+                data-msg="Delete &quot;{{ f.name }}&quot; from this user's vault?"
+                onsubmit="return confirm(this.dataset.msg)">
+            <input type="hidden" name="path" value="{{ f.path }}">
+            <button type="submit" class="icon-btn danger" title="Delete" aria-label="Delete {{ f.name }}">{{ icon("trash") }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="muted">This user has no files.</p>
+{% endif %}
+
+{% if not is_self %}
+<div class="settings" style="margin-top: 28px;">
+  <section class="card danger-zone">
+    <h2>Delete user</h2>
+    <p class="desc">Permanently deletes all of this user's files, timetable and settings. If they sign in again, they start with an empty vault.</p>
+    <form method="POST" action="{{ url_for('admin_delete_user', uid=u.id) }}"
+          data-msg="Delete {{ u.email or 'this user' }} and all their files permanently?"
+          onsubmit="return confirm(this.dataset.msg)">
+      <button type="submit" class="btn btn-danger">{{ icon("trash") }} Delete user and all files</button>
+    </form>
+  </section>
+</div>
+{% endif %}
+{% endblock %}

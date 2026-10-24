@@ -10,18 +10,23 @@ Required environment variables:
     SUPABASE_BUCKET      - Supabase Storage bucket name
 
 Optional:
-    USER_QUOTA_MB - storage allowed per user, in MB (default 100)
-    OWNER_EMAIL   - Gmail address that inherits the old single-user files and
-                    timetable the first time it signs in
+    USER_QUOTA_MB    - storage allowed per user, in MB (default 100)
+    TOTAL_STORAGE_MB - uploads stop once the whole bucket reaches this, in MB
+                       (default 950, just under Supabase's free 1 GB)
+    OWNER_EMAIL      - Gmail address that inherits the old single-user files and
+                       timetable the first time it signs in; also the admin
+    ADMIN_EMAILS     - comma-separated admin Gmail addresses (default OWNER_EMAIL)
 
 Each user's data lives in the bucket under users/<google-id>/:
-    their files and folders, plus .vault/settings.json and .vault/timetable.json
+    their files and folders, plus .vault/settings.json, .vault/timetable.json
+    and .vault/profile.json (name, email, sign-in dates, for the admin page)
 """
 
 import io
 import os
 import re
 import json
+import time
 import uuid
 import functools
 from datetime import date, datetime, timedelta, timezone
@@ -38,7 +43,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 MAX_UPLOAD_MB = 50  # Supabase's free plan rejects single files over 50 MB anyway
 USER_QUOTA_BYTES = int(float(os.environ.get("USER_QUOTA_MB", "100")) * 1024 * 1024)
+TOTAL_STORAGE_BYTES = int(float(os.environ.get("TOTAL_STORAGE_MB", "950")) * 1024 * 1024)
 OWNER_EMAIL = os.environ.get("OWNER_EMAIL", "").strip().lower()
+ADMIN_EMAILS = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", OWNER_EMAIL).split(",") if e.strip()}
 
 app = Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
@@ -73,6 +80,13 @@ USERS_DIR = "users"
 DATA_DIR = ".vault"
 SETTINGS_PATH = f"{DATA_DIR}/settings.json"
 TIMETABLE_PATH = f"{DATA_DIR}/timetable.json"
+PROFILE_PATH = f"{DATA_DIR}/profile.json"
+USER_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+# Listing the whole bucket is slow, so its total size is cached briefly per
+# worker and nudged up after each upload.
+TOTAL_USAGE_TTL = 60
+_total_usage = {"bytes": None, "at": 0.0}
 
 THEMES = ("system", "light", "dark")
 UTC_OFFSETS = [-12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3,
@@ -197,6 +211,37 @@ def usage_bytes():
     return sum(o["size"] for o in walk_raw(user_root()))
 
 
+def bucket_usage_bytes(fresh=False):
+    """Total size of everything in the bucket (all users), cached for a minute."""
+    if fresh or _total_usage["bytes"] is None or time.time() - _total_usage["at"] > TOTAL_USAGE_TTL:
+        _total_usage["bytes"] = sum(o["size"] for o in walk_raw(""))
+        _total_usage["at"] = time.time()
+    return _total_usage["bytes"]
+
+
+def note_bucket_usage(delta):
+    if _total_usage["bytes"] is not None:
+        _total_usage["bytes"] = max(0, _total_usage["bytes"] + delta)
+
+
+def save_profile(info):
+    """Record who owns a vault, for the admin page; keeps the first sign-in date."""
+    key = f"{user_root(info['sub'])}/{PROFILE_PATH}"
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    try:
+        profile = load_json(key, {})
+    except Exception:
+        profile = {}
+    profile.update({
+        "email": info["email"],
+        "name": info.get("name") or "",
+        "picture": info.get("picture", ""),
+        "first_seen": profile.get("first_seen") or now,
+        "last_seen": now,
+    })
+    save_json(key, profile)
+
+
 def folder_paths(objects):
     """Every folder path implied by a list of objects from walk()."""
     paths = set()
@@ -239,6 +284,7 @@ def list_folder(folder):
 def remove_keys(keys):
     for i in range(0, len(keys), 100):
         bucket().remove(keys[i:i + 100])
+    _total_usage["at"] = 0.0  # recount the bucket next time it's needed
 
 
 def migrate_legacy_data(uid, source=""):
@@ -464,6 +510,23 @@ def login_required(view):
     return wrapped
 
 
+def is_admin():
+    user = current_user()
+    return bool(user) and user["email"].lower() in ADMIN_EMAILS
+
+
+def admin_required(view):
+    """Admin pages answer 404 to everyone else, so they aren't discoverable."""
+    @functools.wraps(view)
+    def wrapped(*args, **kwargs):
+        if not current_user():
+            return redirect(url_for("login"))
+        if not is_admin():
+            abort(404)
+        return view(*args, **kwargs)
+    return wrapped
+
+
 @app.template_filter("nice_date")
 def nice_date(value):
     d = parse_date(value)
@@ -472,7 +535,7 @@ def nice_date(value):
 
 @app.context_processor
 def inject_globals():
-    ctx = {"settings": load_settings(), "user": current_user()}
+    ctx = {"settings": load_settings(), "user": current_user(), "is_admin": is_admin()}
     if current_user() and request.endpoint not in ("login", "privacy", "static"):
         try:
             ctx["sidebar_folders"], ctx["sidebar_files"] = list_folder("")
@@ -523,6 +586,10 @@ def auth_callback():
         "name": info.get("name") or info["email"].split("@")[0],
         "picture": info.get("picture", ""),
     }
+    try:
+        save_profile(info)
+    except Exception:
+        pass  # only used by the admin page; never block sign-in over it
 
     if OWNER_EMAIL and info["email"].lower() == OWNER_EMAIL:
         try:
@@ -540,7 +607,7 @@ def auth_callback():
 @app.route("/privacy")
 def privacy():
     return render_template("privacy.html", quota=human_size(USER_QUOTA_BYTES),
-                           contact=OWNER_EMAIL, updated=date(2026, 10, 24))
+                           contact=OWNER_EMAIL, updated=date(2026, 10, 25))
 
 
 @app.route("/logout")
@@ -632,6 +699,7 @@ def upload():
 
     try:
         used = usage_bytes()
+        total = bucket_usage_bytes()
     except Exception as e:
         flash(f"Upload failed: {e}", "error")
         return redirect(url_for("files", folder=folder))
@@ -639,6 +707,9 @@ def upload():
     uploaded, failed = 0, []
     for name, f in incoming:
         data = f.read()
+        if total + len(data) > TOTAL_STORAGE_BYTES:
+            failed.append(f"{name} (the site's shared storage is full right now, please try again later)")
+            continue
         if used + len(data) > USER_QUOTA_BYTES:
             left = max(USER_QUOTA_BYTES - used, 0)
             failed.append(f"{name} (not enough space: {human_size(left)} left of {human_size(USER_QUOTA_BYTES)})")
@@ -650,6 +721,8 @@ def upload():
             })
             uploaded += 1
             used += len(data)
+            total += len(data)
+            note_bucket_usage(len(data))
         except Exception as e:
             failed.append(f"{name} ({e})")
 
@@ -927,6 +1000,140 @@ def delete_account():
     session.clear()
     flash("Your account and all of its files were deleted.", "success")
     return redirect(url_for("login"))
+
+
+# ---------- admin ----------
+
+def admin_user_summary(uid):
+    """Profile and storage figures for one vault, for the admin pages."""
+    try:
+        profile = load_json(f"{user_root(uid)}/{PROFILE_PATH}", {})
+    except Exception:
+        profile = {}
+    objects = walk_raw(user_root(uid))
+    cut = len(user_root(uid)) + 1
+    user_files = [o for o in objects
+                  if not o["placeholder"] and o["key"][cut:].split("/", 1)[0] != DATA_DIR]
+    used = sum(o["size"] for o in objects)
+    offset = load_settings()["utc_offset"]
+    return {
+        "id": uid,
+        "email": profile.get("email", ""),
+        "name": profile.get("name", ""),
+        "picture": profile.get("picture", ""),
+        "joined": local_time(profile.get("first_seen"), offset),
+        "last_seen": local_time(profile.get("last_seen"), offset),
+        "files": len(user_files),
+        "bytes": used,
+        "used": human_size(used),
+        "percent": min(100, round(used * 100 / USER_QUOTA_BYTES, 1)) if USER_QUOTA_BYTES else 0,
+        "objects": objects,
+        "cut": cut,
+    }
+
+
+def check_user_id(uid):
+    if not USER_ID_RE.match(uid or ""):
+        abort(404)
+    return uid
+
+
+@app.route("/admin")
+@admin_required
+def admin():
+    users, other_bytes = [], 0
+    try:
+        for item in bucket().list(USERS_DIR, {"limit": 1000}):
+            if item.get("id") is None and USER_ID_RE.match(item["name"]):
+                users.append(admin_user_summary(item["name"]))
+        # Anything outside users/ (e.g. leftovers from before accounts existed).
+        for item in bucket().list("", {"limit": 1000}):
+            if item["name"] == USERS_DIR:
+                continue
+            if item.get("id") is None:
+                other_bytes += sum(o["size"] for o in walk_raw(item["name"]))
+            else:
+                other_bytes += (item.get("metadata") or {}).get("size", 0)
+    except Exception as e:
+        flash(f"Could not load users: {e}", "error")
+
+    users.sort(key=lambda u: u["bytes"], reverse=True)
+    total = sum(u["bytes"] for u in users) + other_bytes
+    # The admin page just counted everything, so refresh the upload check too.
+    _total_usage.update(bytes=total, at=time.time())
+    return render_template(
+        "admin.html", users=users,
+        total=human_size(total), limit=human_size(TOTAL_STORAGE_BYTES),
+        percent=min(100, round(total * 100 / TOTAL_STORAGE_BYTES, 1)) if TOTAL_STORAGE_BYTES else 0,
+        other=human_size(other_bytes) if other_bytes else "",
+        quota=human_size(USER_QUOTA_BYTES), full_users=max(1, TOTAL_STORAGE_BYTES // max(USER_QUOTA_BYTES, 1)),
+    )
+
+
+@app.route("/admin/user/<uid>")
+@admin_required
+def admin_user(uid):
+    summary = admin_user_summary(check_user_id(uid))
+    offset = load_settings()["utc_offset"]
+    file_rows = []
+    for o in summary["objects"]:
+        rel = o["key"][summary["cut"]:]
+        if o["placeholder"] or rel.split("/", 1)[0] == DATA_DIR:
+            continue
+        file_rows.append({
+            "path": rel,
+            "name": rel.rsplit("/", 1)[-1],
+            "folder": parent_of(rel),
+            "kind": file_kind(rel),
+            "size": human_size(o["size"]),
+            "uploaded": local_time(o["created_at"], offset),
+        })
+    file_rows.sort(key=lambda f: f["path"].lower())
+    return render_template("admin_user.html", u=summary, file_rows=file_rows,
+                           is_self=uid == current_user()["id"])
+
+
+@app.route("/admin/user/<uid>/open")
+@admin_required
+def admin_open_file(uid):
+    path = clean_path(request.args.get("path"))
+    if not path:
+        abort(404)
+    try:
+        res = bucket().create_signed_url(f"{user_root(check_user_id(uid))}/{path}", 300)
+    except Exception:
+        abort(404)
+    return redirect(res.get("signedUrl") or res.get("signedURL"))
+
+
+@app.route("/admin/user/<uid>/delete-file", methods=["POST"])
+@admin_required
+def admin_delete_file(uid):
+    path = clean_path(request.form.get("path"))
+    if not path or path.split("/", 1)[0] == DATA_DIR:
+        abort(400)
+    try:
+        remove_keys([f"{user_root(check_user_id(uid))}/{path}"])
+        flash(f"Deleted {path.rsplit('/', 1)[-1]}.", "success")
+    except Exception as e:
+        flash(f"Delete failed: {e}", "error")
+    return redirect(url_for("admin_user", uid=uid))
+
+
+@app.route("/admin/user/<uid>/delete", methods=["POST"])
+@admin_required
+def admin_delete_user(uid):
+    check_user_id(uid)
+    if uid == current_user()["id"]:
+        flash("To delete your own account, use Settings.", "error")
+        return redirect(url_for("admin_user", uid=uid))
+    try:
+        remove_keys([o["key"] for o in walk_raw(user_root(uid))])
+        flash("User and all of their files were deleted. If they sign in again they start with an empty vault.", "success")
+    except Exception as e:
+        flash(f"Could not delete user: {e}", "error")
+        return redirect(url_for("admin_user", uid=uid))
+    return redirect(url_for("admin"))
 
 
 if __name__ == "__main__":

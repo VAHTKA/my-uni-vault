@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+
+{% block topbar %}
+<div>
+  <h1>Admin</h1>
+  <div class="muted">Only visible to you</div>
+</div>
+<div class="actions">
+  <a class="btn" href="{{ url_for('admin') }}">Refresh</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="admin-stats">
+  <section class="card admin-card">
+    <div class="admin-card-label">Total storage</div>
+    <div class="admin-card-value">{{ total }} <small class="muted">of {{ limit }}</small></div>
+    <div class="quota-bar"><span class="{{ 'full' if percent >= 90 }}" style="width: {{ percent }}%"></span></div>
+    <div class="hint">
+      {% if percent >= 100 %}Full: uploads are blocked for everyone until space is freed.
+      {% elif percent >= 90 %}Almost full: uploads stop at {{ limit }}.
+      {% else %}{{ percent }}% used. Uploads stop at {{ limit }}.{% endif %}
+      {% if other %}Includes {{ other }} outside user vaults.{% endif %}
+    </div>
+  </section>
+  <section class="card admin-card">
+    <div class="admin-card-label">Users</div>
+    <div class="admin-card-value">{{ users | length }}</div>
+    <div class="hint">Each gets {{ quota }} &middot; room for about {{ full_users }} full vaults</div>
+  </section>
+  <section class="card admin-card">
+    <div class="admin-card-label">Files</div>
+    <div class="admin-card-value">{{ users | sum(attribute="files") }}</div>
+    <div class="hint">Across all users</div>
+  </section>
+</div>
+
+<div class="section-title">Users</div>
+{% if users %}
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Storage</th>
+        <th class="hide-sm">Files</th>
+        <th class="hide-sm">Last sign-in</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td class="name">
+          <a class="file-name" href="{{ url_for('admin_user', uid=u.id) }}">
+            {% if u.picture %}
+            <img class="avatar small-avatar" src="{{ u.picture }}" alt="" referrerpolicy="no-referrer">
+            {% else %}
+            <span class="avatar small-avatar">{{ (u.name or u.email or "?")[:1] | upper }}</span>
+            {% endif %}
+            <span class="user-cell">
+              <span>{{ u.name or "Unknown user" }}{% if u.id == user.id %} <span class="badge">You</span>{% endif %}</span>
+              <small class="muted">{{ u.email or "Signs in again to show email" }}</small>
+            </span>
+          </a>
+        </td>
+        <td class="num">
+          <div>{{ u.used }}</div>
+          <div class="quota-bar mini"><span class="{{ 'full' if u.percent >= 90 }}" style="width: {{ u.percent }}%"></span></div>
+        </td>
+        <td class="num hide-sm">{{ u.files }}</td>
+        <td class="num hide-sm">{{ u.last_seen or "—" }}</td>
+        <td class="row-actions">
+          <a class="btn" href="{{ url_for('admin_user', uid=u.id) }}">View</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  {{ icon("users") }}
+  <h2>No users yet</h2>
+  <p>Users appear here after they sign in with Google.</p>
+</div>
+{% endif %}
+{% endblock %}
