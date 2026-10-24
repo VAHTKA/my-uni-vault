@@ -746,6 +746,24 @@ img.avatar { object-fit: cover; background: var(--surface-2); }
 .admin-user .preview-meta { margin-bottom: 16px; }
 @media (max-width: 800px) { .admin-stats { grid-template-columns: 1fr; } }
 
+/* online status dots */
+.avatar-wrap { position: relative; display: inline-flex; flex-shrink: 0; }
+.status-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  background: #dc2626;
+}
+.status-dot.online { background: #16a34a; }
+.status-dot.inline { position: static; display: inline-block; width: 8px; height: 8px; border: none; margin-right: 6px; vertical-align: middle; }
+.status-text { white-space: nowrap; }
+.status-text.online { color: var(--success); font-weight: 500; }
+.admin-card-value .status-text { font-size: 13px; margin-left: 8px; }
+
 /* ---------- legal pages ---------- */
 .legal { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
 .legal-brand { padding: 0 0 16px; }

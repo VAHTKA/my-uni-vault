@@ -88,6 +88,11 @@ USER_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 TOTAL_USAGE_TTL = 60
 _total_usage = {"bytes": None, "at": 0.0}
 
+# Online status for the admin page: open pages ping every 2 minutes, and a
+# user counts as online if they were active in the last 5 and haven't logged out.
+ONLINE_WINDOW_SECONDS = 5 * 60
+ACTIVITY_WRITE_SECONDS = 60
+
 THEMES = ("system", "light", "dark")
 UTC_OFFSETS = [-12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3,
                3.5, 4, 4.5, 5, 5.5, 5.75, 6, 6.5, 7, 8, 9, 9.5, 10, 11, 12, 13, 14]
@@ -238,8 +243,66 @@ def save_profile(info):
         "picture": info.get("picture", ""),
         "first_seen": profile.get("first_seen") or now,
         "last_seen": now,
+        "last_active": now,
+        "signed_out": "",
     })
     save_json(key, profile)
+
+
+def update_profile(**fields):
+    """Merge fields into the signed-in user's profile (best effort)."""
+    key = full(PROFILE_PATH)
+    try:
+        profile = load_json(key, {})
+        profile.update(fields)
+        save_json(key, profile)
+    except Exception:
+        pass
+
+
+def utc_now_iso():
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def record_activity():
+    """Note that the user is active, writing at most once a minute per browser."""
+    now = time.time()
+    if now - session.get("last_ping", 0) < ACTIVITY_WRITE_SECONDS:
+        return
+    session["last_ping"] = now
+    update_profile(last_active=utc_now_iso(), signed_out="")
+
+
+def parse_iso(value):
+    try:
+        return datetime.fromisoformat(value) if value else None
+    except ValueError:
+        return None
+
+
+def time_ago(dt):
+    seconds = int((datetime.now(timezone.utc) - dt).total_seconds())
+    if seconds < 60:
+        return "just now"
+    if seconds < 3600:
+        return f"{seconds // 60} min ago"
+    if seconds < 86400:
+        return f"{seconds // 3600} h ago"
+    days = seconds // 86400
+    return f"{days} day{'s' if days != 1 else ''} ago"
+
+
+def online_status(profile):
+    """('online' | 'offline', label) from a profile's activity timestamps."""
+    active = parse_iso(profile.get("last_active"))
+    signed_out = parse_iso(profile.get("signed_out"))
+    if not active:
+        return "offline", "No activity recorded yet"
+    if signed_out and signed_out >= active:
+        return "offline", f"Signed out {time_ago(signed_out)}"
+    if (datetime.now(timezone.utc) - active).total_seconds() <= ONLINE_WINDOW_SECONDS:
+        return "online", "Online now"
+    return "offline", f"Last active {time_ago(active)}"
 
 
 def folder_paths(objects):
@@ -544,6 +607,19 @@ def inject_globals():
     return ctx
 
 
+@app.before_request
+def track_activity():
+    if current_user() and request.endpoint not in (None, "static", "logout", "ping"):
+        record_activity()
+
+
+@app.route("/ping", methods=["POST"])
+def ping():
+    if current_user():
+        record_activity()
+    return "", 204
+
+
 @app.errorhandler(413)
 def upload_too_large(e):
     flash(f"That upload is too big. The limit is {MAX_UPLOAD_MB} MB at a time.", "error")
@@ -612,6 +688,8 @@ def privacy():
 
 @app.route("/logout")
 def logout():
+    if current_user():
+        update_profile(signed_out=utc_now_iso())
     session.clear()
     return redirect(url_for("login"))
 
@@ -1016,8 +1094,11 @@ def admin_user_summary(uid):
                   if not o["placeholder"] and o["key"][cut:].split("/", 1)[0] != DATA_DIR]
     used = sum(o["size"] for o in objects)
     offset = load_settings()["utc_offset"]
+    status, status_label = online_status(profile)
     return {
         "id": uid,
+        "status": status,
+        "status_label": status_label,
         "email": profile.get("email", ""),
         "name": profile.get("name", ""),
         "picture": profile.get("picture", ""),
@@ -1057,7 +1138,8 @@ def admin():
     except Exception as e:
         flash(f"Could not load users: {e}", "error")
 
-    users.sort(key=lambda u: u["bytes"], reverse=True)
+    # Online users first, then by storage used.
+    users.sort(key=lambda u: (u["status"] != "online", -u["bytes"]))
     total = sum(u["bytes"] for u in users) + other_bytes
     # The admin page just counted everything, so refresh the upload check too.
     _total_usage.update(bytes=total, at=time.time())

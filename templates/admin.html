@@ -26,7 +26,9 @@
   </section>
   <section class="card admin-card">
     <div class="admin-card-label">Users</div>
-    <div class="admin-card-value">{{ users | length }}</div>
+    <div class="admin-card-value">{{ users | length }}
+      <small class="status-text online"><span class="status-dot inline online"></span>{{ users | selectattr("status", "equalto", "online") | list | length }} online</small>
+    </div>
     <div class="hint">Each gets {{ quota }} &middot; room for about {{ full_users }} full vaults</div>
   </section>
   <section class="card admin-card">
@@ -45,7 +47,7 @@
         <th>User</th>
         <th>Storage</th>
         <th class="hide-sm">Files</th>
-        <th class="hide-sm">Last sign-in</th>
+        <th class="hide-sm">Status</th>
         <th></th>
       </tr>
     </thead>
@@ -54,11 +56,14 @@
       <tr>
         <td class="name">
           <a class="file-name" href="{{ url_for('admin_user', uid=u.id) }}">
-            {% if u.picture %}
-            <img class="avatar small-avatar" src="{{ u.picture }}" alt="" referrerpolicy="no-referrer">
-            {% else %}
-            <span class="avatar small-avatar">{{ (u.name or u.email or "?")[:1] | upper }}</span>
-            {% endif %}
+            <span class="avatar-wrap" title="{{ u.status_label }}">
+              {% if u.picture %}
+              <img class="avatar small-avatar" src="{{ u.picture }}" alt="" referrerpolicy="no-referrer">
+              {% else %}
+              <span class="avatar small-avatar">{{ (u.name or u.email or "?")[:1] | upper }}</span>
+              {% endif %}
+              <span class="status-dot {{ u.status }}" aria-label="{{ u.status_label }}"></span>
+            </span>
             <span class="user-cell">
               <span>{{ u.name or "Unknown user" }}{% if u.id == user.id %} <span class="badge">You</span>{% endif %}</span>
               <small class="muted">{{ u.email or "Signs in again to show email" }}</small>
@@ -70,7 +75,9 @@
           <div class="quota-bar mini"><span class="{{ 'full' if u.percent >= 90 }}" style="width: {{ u.percent }}%"></span></div>
         </td>
         <td class="num hide-sm">{{ u.files }}</td>
-        <td class="num hide-sm">{{ u.last_seen or "—" }}</td>
+        <td class="num hide-sm">
+          <span class="status-text {{ u.status }}"><span class="status-dot inline {{ u.status }}"></span>{{ u.status_label }}</span>
+        </td>
         <td class="row-actions">
           <a class="btn" href="{{ url_for('admin_user', uid=u.id) }}">View</a>
         </td>

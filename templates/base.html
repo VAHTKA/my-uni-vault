@@ -105,6 +105,17 @@
       toast.querySelector("button").addEventListener("click", close);
       if (toast.classList.contains("toast-success")) setTimeout(close, 4000);
     });
+
+    // While this tab is visible, tell the server every 2 minutes that the user
+    // is still here (drives the online dot on the admin page).
+    (function () {
+      function ping() {
+        if (document.visibilityState !== "visible") return;
+        fetch("{{ url_for('ping') }}", { method: "POST", credentials: "same-origin" }).catch(function () {});
+      }
+      setInterval(ping, 120000);
+      document.addEventListener("visibilitychange", ping);
+    })();
   </script>
 </body>
 </html>

@@ -16,17 +16,21 @@
 <div class="settings admin-user">
   <section class="card">
     <div class="preview-meta">
-      {% if u.picture %}
-      <img class="avatar" src="{{ u.picture }}" alt="" referrerpolicy="no-referrer">
-      {% else %}
-      <span class="avatar">{{ (u.name or u.email or "?")[:1] | upper }}</span>
-      {% endif %}
+      <span class="avatar-wrap" title="{{ u.status_label }}">
+        {% if u.picture %}
+        <img class="avatar" src="{{ u.picture }}" alt="" referrerpolicy="no-referrer">
+        {% else %}
+        <span class="avatar">{{ (u.name or u.email or "?")[:1] | upper }}</span>
+        {% endif %}
+        <span class="status-dot {{ u.status }}" aria-label="{{ u.status_label }}"></span>
+      </span>
       <div>
         <div class="preview-name">{{ u.name or "Unknown user" }}{% if is_self %} <span class="badge">You</span>{% endif %}</div>
         <div class="muted">{{ u.email or "Email shows after their next sign-in" }}</div>
       </div>
     </div>
     <dl class="info-list">
+      <dt>Status</dt><dd><span class="status-text {{ u.status }}"><span class="status-dot inline {{ u.status }}"></span>{{ u.status_label }}</span></dd>
       <dt>Storage</dt><dd>{{ u.used }} ({{ u.percent }}% of their limit)</dd>
       <dt>Files</dt><dd>{{ u.files }}</dd>
       <dt>Joined</dt><dd>{{ u.joined or "—" }}</dd>
