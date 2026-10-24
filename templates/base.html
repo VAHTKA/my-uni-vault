@@ -5,15 +5,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}{% endblock %} - My Uni Vault</title>
+  {% include "_fonts.html" %}
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <div class="layout">
+    {# Phones: a slim icon rail on the left; the menu button expands it into the full sidebar. #}
     <aside class="sidebar">
       <input type="checkbox" id="menu-toggle" class="menu-checkbox">
       <div class="sidebar-head">
-        <a class="brand" href="{{ url_for('files') }}">{{ icon("cap") }} My Uni Vault</a>
-        <label for="menu-toggle" class="icon-btn mobile-menu" aria-label="Menu">{{ icon("menu") }}</label>
+        <a class="brand" href="{{ url_for('files') }}" title="My Uni Vault">{{ icon("cap") }} <span class="brand-text">My Uni Vault</span></a>
+        <label for="menu-toggle" class="icon-btn mobile-menu" aria-label="Open or close menu" title="Menu">{{ icon("menu") }}</label>
       </div>
 
       <nav class="nav">
@@ -21,6 +23,9 @@
           {{ icon("search") }}
           <input type="search" name="q" value="{{ q or '' }}" placeholder="Search files" aria-label="Search files">
         </form>
+        <a href="{{ url_for('search') }}" class="rail rail-only {{ 'active' if request.endpoint == 'search' }}" title="Search">
+          {{ icon("search") }} <span>Search</span>
+        </a>
 
         <div class="nav-label">Folders</div>
         {% for f in sidebar_folders %}
@@ -33,7 +38,7 @@
         {% endfor %}
 
         <div class="nav-label">Files</div>
-        <a href="{{ url_for('files') }}" class="{{ 'active' if request.endpoint == 'files' and not folder }}">
+        <a href="{{ url_for('files') }}" class="rail {{ 'active' if request.endpoint == 'files' and not folder }}" title="All files">
           {{ icon("home") }} <span>All files</span>
         </a>
         {% for f in sidebar_files[:8] %}
@@ -48,16 +53,16 @@
         {% endif %}
 
         <div class="nav-label">Planner</div>
-        <a href="{{ url_for('timetable') }}" class="{{ 'active' if request.endpoint == 'timetable' }}">
+        <a href="{{ url_for('timetable') }}" class="rail {{ 'active' if request.endpoint in ('timetable', 'timetable_edit') }}" title="Timetable">
           {{ icon("calendar") }} <span>Timetable</span>
         </a>
 
         <div class="nav-label">Settings</div>
-        <a href="{{ url_for('settings_page') }}" class="{{ 'active' if request.endpoint == 'settings_page' }}">
+        <a href="{{ url_for('settings_page') }}" class="rail {{ 'active' if request.endpoint == 'settings_page' }}" title="Settings">
           {{ icon("settings") }} <span>Settings</span>
         </a>
         {% if is_admin %}
-        <a href="{{ url_for('admin') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin') }}">
+        <a href="{{ url_for('admin') }}" class="rail {{ 'active' if request.endpoint and request.endpoint.startswith('admin') }}" title="Admin">
           {{ icon("shield") }} <span>Admin</span>
         </a>
         {% endif %}
@@ -76,10 +81,20 @@
         <a class="icon-btn danger" href="{{ url_for('logout') }}" title="Log out" aria-label="Log out">{{ icon("logout") }}</a>
       </div>
     </aside>
+    <label for="menu-toggle" class="sidebar-backdrop" aria-hidden="true"></label>
 
     <main class="main">
       <header class="topbar">
-        {% block topbar %}{% endblock %}
+        <div class="topbar-main">
+          {% block topbar %}{% endblock %}
+        </div>
+        <form class="theme-toggle" method="POST" action="{{ url_for('set_theme') }}">
+          <input type="hidden" name="theme" value="{{ 'light' if settings.theme == 'dark' else 'dark' }}">
+          <button type="submit" class="theme-btn" title="Switch light / dark mode" aria-label="Switch light or dark mode">
+            <span class="when-light">{{ icon("moon") }}</span>
+            <span class="when-dark">{{ icon("sun") }}</span>
+          </button>
+        </form>
       </header>
       <div class="content">
         {% block content %}{% endblock %}
@@ -105,6 +120,25 @@
       toast.querySelector("button").addEventListener("click", close);
       if (toast.classList.contains("toast-success")) setTimeout(close, 4000);
     });
+
+    // Light/dark toggle: switch instantly, then save the choice in the background.
+    (function () {
+      var form = document.querySelector(".theme-toggle");
+      var root = document.documentElement;
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var current = root.dataset.theme;
+        if (current === "system") {
+          current = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        var next = current === "dark" ? "light" : "dark";
+        root.dataset.theme = next;
+        var data = new FormData();
+        data.append("theme", next);
+        fetch(form.action, { method: "POST", body: data, credentials: "same-origin",
+                             headers: { "X-Requested-With": "fetch" } }).catch(function () {});
+      });
+    })();
 
     // While this tab is visible, tell the server every 2 minutes that the user
     // is still here (drives the online dot on the admin page).

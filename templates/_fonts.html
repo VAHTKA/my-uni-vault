@@ -1,0 +1,16 @@
+{# Milesian when its licensed files are in static/fonts/, otherwise Figtree. #}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
+{% if milesian_faces %}
+<style>
+  {% for weight, file in milesian_faces %}
+  @font-face {
+    font-family: "Milesian";
+    src: url("{{ url_for('static', filename='fonts/' ~ file) }}") format("woff2");
+    font-weight: {{ weight }};
+    font-display: swap;
+  }
+  {% endfor %}
+</style>
+{% endif %}

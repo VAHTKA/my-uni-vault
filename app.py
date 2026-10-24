@@ -41,6 +41,14 @@ from werkzeug.utils import secure_filename
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Milesian is a licensed font, so it isn't in the repo. Drop its .woff2 files
+# into static/fonts/ (see FONT_FILES) and the site uses it; otherwise it falls
+# back to Figtree from Google Fonts.
+FONT_DIR = os.path.join(BASE_DIR, "static", "fonts")
+FONT_FILES = {400: "Milesian-Regular.woff2", 500: "Milesian-Medium.woff2",
+              600: "Milesian-SemiBold.woff2", 700: "Milesian-Bold.woff2"}
+MILESIAN_FACES = [(w, f) for w, f in FONT_FILES.items() if os.path.exists(os.path.join(FONT_DIR, f))]
+
 MAX_UPLOAD_MB = 50  # Supabase's free plan rejects single files over 50 MB anyway
 USER_QUOTA_BYTES = int(float(os.environ.get("USER_QUOTA_MB", "100")) * 1024 * 1024)
 TOTAL_STORAGE_BYTES = int(float(os.environ.get("TOTAL_STORAGE_MB", "950")) * 1024 * 1024)
@@ -598,7 +606,8 @@ def nice_date(value):
 
 @app.context_processor
 def inject_globals():
-    ctx = {"settings": load_settings(), "user": current_user(), "is_admin": is_admin()}
+    ctx = {"settings": load_settings(), "user": current_user(), "is_admin": is_admin(),
+           "milesian_faces": MILESIAN_FACES}
     if current_user() and request.endpoint not in ("login", "privacy", "static"):
         try:
             ctx["sidebar_folders"], ctx["sidebar_files"] = list_folder("")
@@ -1061,6 +1070,24 @@ def settings_page():
 
     offsets = [(o, format_offset(o)) for o in UTC_OFFSETS]
     return render_template("settings.html", offsets=offsets, themes=THEMES, stats=stats)
+
+
+@app.route("/theme", methods=["POST"])
+@login_required
+def set_theme():
+    """Save the theme picked with the top-bar toggle."""
+    theme = request.form.get("theme")
+    if theme in THEMES:
+        settings = dict(load_settings(), theme=theme)
+        try:
+            save_settings(settings)
+        except Exception:
+            pass  # the page already switched; it just won't be remembered
+    if request.headers.get("X-Requested-With") == "fetch":
+        return "", 204
+    # No-JS fallback: go back to the page the toggle was on (same site only).
+    back = request.referrer or ""
+    return redirect(back if back.startswith(request.host_url) else url_for("files"))
 
 
 @app.route("/account/delete", methods=["POST"])
