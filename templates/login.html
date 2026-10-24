@@ -1,26 +1,42 @@
-{% from "icons.html" import icon %}
 <!DOCTYPE html>
-<html lang="en" data-theme="{{ settings.theme }}">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
   <title>Sign in - My Uni Vault</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-  <div class="auth">
-    <div class="auth-card">
-      <div class="auth-brand">
-        <div class="logo">{{ icon("cap") }}</div>
-        <h1>My Uni Vault</h1>
-        <p>Your student files and weekly timetable</p>
-      </div>
+<body class="login-page">
+  <!-- Faint wavy lines behind the card on larger screens -->
+  <svg class="login-waves" viewBox="0 0 1200 1500" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M-50 90 C 250 40, 520 120, 760 330 S 1150 520, 1260 470"/>
+    <path d="M-50 170 C 300 150, 560 250, 780 470 S 1150 650, 1260 600"/>
+    <path d="M-50 470 C 180 430, 420 520, 640 660"/>
+    <path d="M330 1180 C 560 1300, 840 1380, 1260 1330"/>
+    <path d="M520 1100 C 760 1240, 1000 1260, 1260 1180"/>
+    <path d="M1010 1060 C 1100 1000, 1180 960, 1260 940"/>
+  </svg>
+
+  <main class="login-screen">
+    <div class="login-hero" aria-hidden="true">
+      <img class="login-illustration" src="{{ url_for('static', filename='img/login-student.png') }}"
+           width="206" height="228" alt="">
+
+
+    </div>
+
+    <div class="login-body">
+      <h1>My Uni Vault</h1>
+      <p class="login-sub">Keep your study files and weekly timetable in one private place, for free.</p>
+
+      <div class="login-steps" aria-hidden="true"><span class="on"></span><span class="on"></span><span></span></div>
 
       {% for category, msg in get_flashed_messages(with_categories=true) %}
-      <div class="alert alert-{{ 'success' if category == 'success' else 'error' }}">{{ msg }}</div>
+      <div class="login-alert {{ 'ok' if category == 'success' else 'err' }}">{{ msg }}</div>
       {% endfor %}
 
-      <a class="btn btn-google btn-block" href="{{ url_for('login_google') }}">
+      <a class="pill-btn pill-google" href="{{ url_for('login_google') }}">
         <svg class="icon" viewBox="0 0 48 48" aria-hidden="true">
           <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/>
           <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
@@ -30,9 +46,9 @@
         Continue with Google
       </a>
 
-      <p class="auth-note">New here? Signing in with Google creates your account. Each student gets a private vault of their own.</p>
-      <p class="auth-footer">Only your name, email and profile photo are read from Google. &middot; <a href="{{ url_for('privacy') }}">Privacy Policy</a></p>
+      <p class="login-foot">New here? Signing in with Google creates your account.</p>
+      <p class="login-legal">Only your name, email and photo are read from Google &middot; <a href="{{ url_for('privacy') }}">Privacy Policy</a></p>
     </div>
-  </div>
+  </main>
 </body>
 </html>
