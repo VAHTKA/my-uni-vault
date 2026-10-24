@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+
+{% block topbar %}
+<div>
+  <h1>Search</h1>
+  {% if q %}<div class="muted">Results for "{{ q }}"</div>{% endif %}
+</div>
+<form class="search-bar" method="GET" action="{{ url_for('search') }}" role="search">
+  {{ icon("search") }}
+  <input class="input" type="search" name="q" value="{{ q }}" placeholder="Search by file or folder name" autofocus>
+  <button type="submit" class="btn btn-primary">Search</button>
+</form>
+{% endblock %}
+
+{% block content %}
+{% if not q %}
+<div class="empty-state">
+  {{ icon("search") }}
+  <h2>Find anything in your vault</h2>
+  <p>Type part of a file or folder name. Search looks inside every folder.</p>
+</div>
+{% elif not found_folders and not found_files %}
+<div class="empty-state">
+  {{ icon("search") }}
+  <h2>No matches for "{{ q }}"</h2>
+  <p>Try a shorter or different part of the name.</p>
+</div>
+{% endif %}
+
+{% if found_folders %}
+<div class="section-title">Folders ({{ found_folders | length }})</div>
+<div class="folder-grid">
+  {% for f in found_folders %}
+  <div class="folder-card">
+    <a class="folder-link" href="{{ url_for('files', folder=f.path) }}">
+      {{ icon("folder") }}
+      <span class="folder-text">
+        <span>{{ f.name }}</span>
+        <small class="muted">{{ f.parent or "My Files" }}</small>
+      </span>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if found_files %}
+<div class="section-title">Files ({{ found_files | length }})</div>
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th class="hide-sm">Location</th>
+        <th>Size</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in found_files %}
+      <tr>
+        <td class="name">
+          <a class="file-name" href="{{ url_for('preview', path=f.path) }}">
+            <span class="file-icon kind-{{ f.kind }}">{{ icon("file") }}</span>
+            <span>{{ f.name }}</span>
+          </a>
+        </td>
+        <td class="num hide-sm">
+          <a class="location" href="{{ url_for('files', folder=f.folder) }}">{{ icon("folder") }} {{ f.folder or "My Files" }}</a>
+        </td>
+        <td class="num">{{ f.size }}</td>
+        <td class="row-actions">
+          <a class="icon-btn" href="{{ url_for('download', path=f.path) }}" title="Download" aria-label="Download {{ f.name }}">{{ icon("download") }}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

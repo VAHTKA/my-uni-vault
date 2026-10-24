@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ file.name }}{% endblock %}
+
+{% block topbar %}
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="{{ url_for('files') }}">My Files</a>
+  {% for c in crumbs %}
+  {{ icon("chevron", "icon sep") }}
+  {% if loop.last %}
+  <span class="current">{{ c.name }}</span>
+  {% else %}
+  <a href="{{ url_for('files', folder=c.path) }}">{{ c.name }}</a>
+  {% endif %}
+  {% endfor %}
+</nav>
+
+<div class="actions">
+  <a class="btn" href="{{ url_for('files', folder=folder) }}">Back</a>
+  <a class="btn btn-primary" href="{{ url_for('download', path=file.path) }}">{{ icon("download") }} Download</a>
+  <form method="POST" action="{{ url_for('delete') }}"
+        data-msg="Delete &quot;{{ file.name }}&quot;?"
+        onsubmit="return confirm(this.dataset.msg)">
+    <input type="hidden" name="path" value="{{ file.path }}">
+    <input type="hidden" name="kind" value="file">
+    <button type="submit" class="btn btn-danger">{{ icon("trash") }} Delete</button>
+  </form>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="preview-meta">
+  <span class="file-icon kind-{{ file.kind }}">{{ icon("file") }}</span>
+  <div>
+    <div class="preview-name">{{ file.name }}</div>
+    <div class="muted">{{ file.size }} &middot; Uploaded {{ file.uploaded }}</div>
+  </div>
+</div>
+
+<div class="card preview">
+  {% if mode == "image" %}
+  <div class="preview-image"><img src="{{ src }}" alt="{{ file.name }}"></div>
+
+  {% elif mode == "pdf" %}
+  <iframe class="preview-frame" src="{{ src }}" title="{{ file.name }}"></iframe>
+
+  {% elif mode == "video" %}
+  <div class="preview-media"><video src="{{ src }}" controls preload="metadata"></video></div>
+
+  {% elif mode == "audio" %}
+  <div class="preview-media"><audio src="{{ src }}" controls preload="metadata"></audio></div>
+
+  {% elif mode == "text" %}
+  <pre class="preview-text">{{ text }}</pre>
+
+  {% else %}
+  <div class="preview-none">
+    <span class="file-icon kind-{{ file.kind }}">{{ icon("file") }}</span>
+    <h2>
+      {% if mode == "too_large" %}This file is too large to preview
+      {% else %}No preview for {{ "." ~ ext if ext else "this file type" }}{% endif %}
+    </h2>
+    <p class="muted">Download it to open it on your device.</p>
+    <a class="btn btn-primary" href="{{ url_for('download', path=file.path) }}">{{ icon("download") }} Download</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

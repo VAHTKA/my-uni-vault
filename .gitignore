@@ -1,0 +1,5 @@
+.env
+settings.json
+settings.json.migrated
+__pycache__/
+*.pyc

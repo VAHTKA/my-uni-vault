@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% block topbar %}
+<h1>Settings</h1>
+{% endblock %}
+
+{% block content %}
+<div class="settings">
+  <form method="POST" action="{{ url_for('settings_page') }}" class="settings">
+    <section class="card">
+      <h2>Profile</h2>
+      <p class="desc">How you appear in the sidebar.</p>
+      <div class="field">
+        <label for="display_name">Display name</label>
+        <input class="input" id="display_name" name="display_name" value="{{ settings.display_name }}" maxlength="40">
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Preferences</h2>
+      <p class="desc">Appearance and how upload times are shown.</p>
+      <div class="field">
+        <label>Theme</label>
+        <div class="choice-row">
+          {% for t in themes %}
+          <label class="choice">
+            <input type="radio" name="theme" value="{{ t }}" {{ "checked" if settings.theme == t }}>
+            {{ t | capitalize }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="field">
+        <label for="utc_offset">Time zone</label>
+        <select class="input" id="utc_offset" name="utc_offset">
+          {% for value, label in offsets %}
+          <option value="{{ value }}" {{ "selected" if value == settings.utc_offset }}>{{ label }}{{ " (Malaysia)" if value == 8 }}</option>
+          {% endfor %}
+        </select>
+        <div class="hint">Supabase stores times in UTC; they are converted to this zone for display.</div>
+      </div>
+      <div class="form-footer">
+        <button type="submit" class="btn btn-primary">Save changes</button>
+      </div>
+    </section>
+  </form>
+
+  <section class="card">
+    <h2>Storage</h2>
+    <p class="desc">How much of your space you're using.</p>
+    {% if stats %}
+    <div class="quota">
+      <div class="quota-text"><strong>{{ stats.used }}</strong> of {{ stats.quota }} used</div>
+      <div class="quota-bar" role="progressbar" aria-valuenow="{{ stats.percent }}" aria-valuemin="0" aria-valuemax="100">
+        <span class="{{ 'full' if stats.percent >= 90 }}" style="width: {{ stats.percent }}%"></span>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-value">{{ stats.files }}</div><div class="stat-label">Files</div></div>
+      <div class="stat"><div class="stat-value">{{ stats.folders }}</div><div class="stat-label">Folders</div></div>
+      <div class="stat"><div class="stat-value">{{ stats.size }}</div><div class="stat-label">Total size</div></div>
+    </div>
+    {% else %}
+    <p class="muted">Storage usage is unavailable right now.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Account</h2>
+    <p class="desc">You sign in with Google. Your files are private to this account.</p>
+    <dl class="info-list">
+      <dt>Google account</dt><dd>{{ user.email }}</dd>
+      <dt>Name on Google</dt><dd>{{ user.name }}</dd>
+    </dl>
+  </section>
+
+  <section class="card danger-zone">
+    <h2>Delete account</h2>
+    <p class="desc">Permanently deletes every file, folder, timetable entry and setting in this account. This can't be undone.</p>
+    <form method="POST" action="{{ url_for('delete_account') }}"
+          onsubmit="return confirm('Delete your account and all files permanently?')">
+      <div class="field">
+        <label for="confirm">Type <strong>{{ user.email }}</strong> to confirm</label>
+        <input class="input" id="confirm" name="confirm" autocomplete="off" required>
+      </div>
+      <button type="submit" class="btn btn-danger">{{ icon("trash") }} Delete my account</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

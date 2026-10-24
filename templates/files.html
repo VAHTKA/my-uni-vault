@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}{{ crumbs[-1].name if crumbs else "My Files" }}{% endblock %}
+
+{% block topbar %}
+<nav class="crumbs" aria-label="Breadcrumb">
+  {% if crumbs %}
+  <a href="{{ url_for('files') }}">My Files</a>
+  {% for c in crumbs %}
+  {{ icon("chevron", "icon sep") }}
+  {% if loop.last %}
+  <span class="current">{{ c.name }}</span>
+  {% else %}
+  <a href="{{ url_for('files', folder=c.path) }}">{{ c.name }}</a>
+  {% endif %}
+  {% endfor %}
+  {% else %}
+  <span class="current">My Files</span>
+  {% endif %}
+</nav>
+
+<div class="actions">
+  <details class="popover">
+    <summary class="btn">{{ icon("folder-plus") }} New folder</summary>
+    <form class="popover-panel" method="POST" action="{{ url_for('new_folder') }}">
+      <input type="hidden" name="folder" value="{{ folder }}">
+      <label for="folder-name">Folder name</label>
+      <input class="input" id="folder-name" name="name" placeholder="e.g. Semester_1" maxlength="80" required>
+      <div class="row">
+        <button type="submit" class="btn btn-primary btn-block">Create</button>
+      </div>
+    </form>
+  </details>
+
+  <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+    <input type="hidden" name="folder" value="{{ folder }}">
+    <label class="btn btn-primary upload-btn">
+      {{ icon("upload") }} Upload
+      <input type="file" name="file" multiple required onchange="this.form.submit()">
+    </label>
+  </form>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if home %}
+<section class="welcome">
+  <div class="welcome-text">
+    <div class="welcome-date">{{ home.date }}</div>
+    <h2>{{ home.greeting }}, {{ settings.display_name }}</h2>
+    <p class="muted">Here's an overview of your vault.</p>
+    <div class="welcome-stats">
+      <div><strong>{{ folders | length }}</strong><span>Folders</span></div>
+      <div><strong>{{ files | length }}</strong><span>Files</span></div>
+      <div><strong>{{ home.today | length if home.today else 0 }}</strong><span>Planned today</span></div>
+    </div>
+  </div>
+  <div class="today-card">
+    <div class="today-head">
+      <span>{{ icon("calendar") }} Today</span>
+      <a href="{{ url_for('timetable') }}">Open timetable</a>
+    </div>
+    {% if home.today is none %}
+    <p class="muted">Timetable unavailable right now.</p>
+    {% elif home.today %}
+    <ul class="today-list">
+      {% for e in home.today[:4] %}
+      <li>
+        <span class="tag tag-{{ e.type }}">{{ entry_types[e.type] }}</span>
+        <span class="today-title">{{ e.title }}</span>
+        {% if e.start %}<span class="muted">{{ e.start }}{% if e.end %}–{{ e.end }}{% endif %}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% if home.today | length > 4 %}<p class="muted small">+ {{ home.today | length - 4 }} more today</p>{% endif %}
+    {% else %}
+    <p class="muted">Nothing planned today. <a href="{{ url_for('timetable') }}">Plan your week</a></p>
+    {% endif %}
+  </div>
+
+  <div class="today-card">
+    <div class="today-head">
+      <span>{{ icon("alert") }} Upcoming <small class="muted">next 7 days</small></span>
+    </div>
+    {% if home.upcoming is none %}
+    <p class="muted">Timetable unavailable right now.</p>
+    {% elif home.upcoming %}
+    <ul class="upcoming-list">
+      {% for e in home.upcoming[:5] %}
+      <li>
+        <a href="{{ url_for('timetable', week=e.on) }}" class="upcoming-item">
+          <span class="countdown{{ ' soon' if e.days_left <= 1 }}">{{ e.when }}</span>
+          <span class="upcoming-text">
+            <span class="today-title">{{ e.title }}</span>
+            <span class="muted small">
+              <span class="tag tag-{{ e.type }}">{{ entry_types[e.type] }}</span>
+              {{ e.day_label }}{% if e.start %}, {{ e.start }}{% endif %}
+            </span>
+          </span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% if home.upcoming | length > 5 %}<p class="muted small">+ {{ home.upcoming | length - 5 }} more this week</p>{% endif %}
+    {% else %}
+    <p class="muted">No assignments or exams in the next 7 days.</p>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% if not folders and not files %}
+<div class="empty-state">
+  {{ icon("upload") }}
+  <h2>{{ "This folder is empty" if folder else "Your vault is empty" }}</h2>
+  <p>Upload files or create a folder to get started.</p>
+</div>
+{% endif %}
+
+{% if folders %}
+<div class="section-title">Folders</div>
+<div class="folder-grid">
+  {% for f in folders %}
+  <div class="folder-card">
+    <a class="folder-link" href="{{ url_for('files', folder=f.path) }}">
+      {{ icon("folder") }} <span>{{ f.name }}</span>
+    </a>
+    <form method="POST" action="{{ url_for('delete') }}"
+          data-msg="Delete folder &quot;{{ f.name }}&quot; and everything inside it?"
+          onsubmit="return confirm(this.dataset.msg)">
+      <input type="hidden" name="path" value="{{ f.path }}">
+      <input type="hidden" name="kind" value="folder">
+      <button type="submit" class="icon-btn danger" title="Delete folder" aria-label="Delete folder {{ f.name }}">{{ icon("trash") }}</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if files %}
+<div class="section-title">Files</div>
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Size</th>
+        <th class="hide-sm">Uploaded</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in files %}
+      <tr>
+        <td class="name">
+          <a class="file-name" href="{{ url_for('preview', path=f.path) }}">
+            <span class="file-icon kind-{{ f.kind }}">{{ icon("file") }}</span>
+            <span>{{ f.name }}</span>
+          </a>
+        </td>
+        <td class="num">{{ f.size }}</td>
+        <td class="num hide-sm">{{ f.uploaded }}</td>
+        <td class="row-actions">
+          <a class="icon-btn" href="{{ url_for('download', path=f.path) }}" title="Download" aria-label="Download {{ f.name }}">{{ icon("download") }}</a>
+          <form method="POST" action="{{ url_for('delete') }}"
+                data-msg="Delete &quot;{{ f.name }}&quot;?"
+                onsubmit="return confirm(this.dataset.msg)">
+            <input type="hidden" name="path" value="{{ f.path }}">
+            <input type="hidden" name="kind" value="file">
+            <button type="submit" class="icon-btn danger" title="Delete" aria-label="Delete {{ f.name }}">{{ icon("trash") }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

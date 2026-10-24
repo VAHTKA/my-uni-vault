@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Edit entry{% endblock %}
+
+{% block topbar %}
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="{{ url_for('timetable', week=week) }}">Timetable</a>
+  {{ icon("chevron", "icon sep") }}
+  <span class="current">Edit entry</span>
+</nav>
+<div class="actions">
+  <a class="btn" href="{{ url_for('timetable', week=week) }}">Cancel</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="settings">
+  <form method="POST" action="{{ url_for('timetable_edit', entry_id=entry.id) }}" class="card">
+    <input type="hidden" name="week" value="{{ week }}">
+    <h2>{{ entry.title }}</h2>
+    <p class="desc">
+      {% if entry.repeat == "weekly" %}This entry repeats every week. Changes apply to every week.
+      {% else %}Changes apply to this entry only.{% endif %}
+    </p>
+
+    <div class="field">
+      <label for="title">Title</label>
+      <input class="input" id="title" name="title" value="{{ entry.title }}" maxlength="100" required>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="type">Type</label>
+        <select class="input" id="type" name="type">
+          {% for key, label in entry_types.items() %}
+          <option value="{{ key }}" {{ "selected" if entry.type == key }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="date">{{ "First day" if entry.repeat == "weekly" else "Day" }}</label>
+        <input class="input" type="date" id="date" name="date" value="{{ entry.date }}" required>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="start">Start time</label>
+        <input class="input" type="time" id="start" name="start" value="{{ entry.start }}">
+      </div>
+      <div class="field">
+        <label for="end">End time</label>
+        <input class="input" type="time" id="end" name="end" value="{{ entry.end }}">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="note">Note</label>
+      <input class="input" id="note" name="note" value="{{ entry.note }}" maxlength="300" placeholder="Room, lecturer or note">
+    </div>
+
+    <div class="field">
+      <label class="check">
+        <input type="checkbox" name="repeat" value="weekly" {{ "checked" if entry.repeat == "weekly" }}> Repeat every week
+      </label>
+    </div>
+    <div class="field">
+      <label for="until">Repeat until</label>
+      <input class="input" type="date" id="until" name="until" value="{{ entry.until }}">
+      <div class="hint">Optional. Leave empty to repeat with no end date. Ignored if "Repeat every week" is off.</div>
+    </div>
+
+    {% if entry.skip %}
+    <div class="field">
+      <label>Skipped weeks</label>
+      <div class="hint">Removed on: {% for s in entry.skip | sort %}{{ s | nice_date }}{{ ", " if not loop.last }}{% endfor %}</div>
+    </div>
+    {% endif %}
+
+    <div class="form-footer">
+      <button type="submit" class="btn btn-primary">Save changes</button>
+    </div>
+  </form>
+
+  <section class="card danger-zone">
+    <h2>Delete</h2>
+    <p class="desc">
+      {% if entry.repeat == "weekly" %}Remove this entry from every week. To skip just one week, use the &times; on that day in the timetable.
+      {% else %}Remove this entry from your timetable.{% endif %}
+    </p>
+    <form method="POST" action="{{ url_for('timetable_delete') }}"
+          data-msg="Delete &quot;{{ entry.title }}&quot;{{ ' from every week' if entry.repeat == 'weekly' }}?"
+          onsubmit="return confirm(this.dataset.msg)">
+      <input type="hidden" name="id" value="{{ entry.id }}">
+      <input type="hidden" name="scope" value="all">
+      <input type="hidden" name="week" value="{{ week }}">
+      <button type="submit" class="btn btn-danger">{{ icon("trash") }} {{ "Delete from every week" if entry.repeat == "weekly" else "Delete entry" }}</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

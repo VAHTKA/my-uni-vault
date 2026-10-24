@@ -1,0 +1,105 @@
+{% from "icons.html" import icon %}
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ settings.theme }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{% endblock %} - My Uni Vault</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <input type="checkbox" id="menu-toggle" class="menu-checkbox">
+      <div class="sidebar-head">
+        <a class="brand" href="{{ url_for('files') }}">{{ icon("cap") }} My Uni Vault</a>
+        <label for="menu-toggle" class="icon-btn mobile-menu" aria-label="Menu">{{ icon("menu") }}</label>
+      </div>
+
+      <nav class="nav">
+        <form class="sidebar-search" method="GET" action="{{ url_for('search') }}" role="search">
+          {{ icon("search") }}
+          <input type="search" name="q" value="{{ q or '' }}" placeholder="Search files" aria-label="Search files">
+        </form>
+
+        <div class="nav-label">Folders</div>
+        {% for f in sidebar_folders %}
+        <a href="{{ url_for('files', folder=f.path) }}"
+           class="{{ 'active' if folder and (folder == f.path or folder.startswith(f.path ~ '/')) }}">
+          {{ icon("folder") }} <span>{{ f.name }}</span>
+        </a>
+        {% else %}
+        <div class="empty-note">No folders yet</div>
+        {% endfor %}
+
+        <div class="nav-label">Files</div>
+        <a href="{{ url_for('files') }}" class="{{ 'active' if request.endpoint == 'files' and not folder }}">
+          {{ icon("home") }} <span>All files</span>
+        </a>
+        {% for f in sidebar_files[:8] %}
+        <a href="{{ url_for('preview', path=f.path) }}" class="{{ 'active' if current_path == f.path }}">
+          {{ icon("file") }} <span>{{ f.name }}</span>
+        </a>
+        {% endfor %}
+        {% if sidebar_files | length > 8 %}
+        <a href="{{ url_for('files') }}" class="more">
+          <span>+ {{ sidebar_files | length - 8 }} more</span>
+        </a>
+        {% endif %}
+
+        <div class="nav-label">Planner</div>
+        <a href="{{ url_for('timetable') }}" class="{{ 'active' if request.endpoint == 'timetable' }}">
+          {{ icon("calendar") }} <span>Timetable</span>
+        </a>
+
+        <div class="nav-label">Settings</div>
+        <a href="{{ url_for('settings_page') }}" class="{{ 'active' if request.endpoint == 'settings_page' }}">
+          {{ icon("settings") }} <span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        {% if user.picture %}
+        <img class="avatar" src="{{ user.picture }}" alt="" referrerpolicy="no-referrer">
+        {% else %}
+        <div class="avatar">{{ settings.display_name[:1] | upper }}</div>
+        {% endif %}
+        <div class="user">
+          <div class="user-name">{{ settings.display_name }}</div>
+          <div class="user-role" title="{{ user.email }}">{{ user.email }}</div>
+        </div>
+        <a class="icon-btn danger" href="{{ url_for('logout') }}" title="Log out" aria-label="Log out">{{ icon("logout") }}</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        {% block topbar %}{% endblock %}
+      </header>
+      <div class="content">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <div class="toasts" aria-live="polite">
+    {% for category, msg in get_flashed_messages(with_categories=true) %}
+    <div class="toast toast-{{ 'success' if category == 'success' else 'error' }}" role="{{ 'status' if category == 'success' else 'alert' }}">
+      <span class="toast-msg">{{ msg }}</span>
+      <button type="button" class="icon-btn small" aria-label="Dismiss">{{ icon("x") }}</button>
+    </div>
+    {% endfor %}
+  </div>
+  <script>
+    // Success messages fade out on their own; errors stay until dismissed.
+    document.querySelectorAll(".toast").forEach(function (toast) {
+      function close() {
+        toast.classList.add("hide");
+        setTimeout(function () { toast.remove(); }, 300);
+      }
+      toast.querySelector("button").addEventListener("click", close);
+      if (toast.classList.contains("toast-success")) setTimeout(close, 4000);
+    });
+  </script>
+</body>
+</html>

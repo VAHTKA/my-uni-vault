@@ -1,0 +1,49 @@
+{% from "icons.html" import icon %}
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ settings.theme }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - My Uni Vault</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="legal">
+    <a class="brand legal-brand" href="{{ url_for('login') }}">{{ icon("cap") }} My Uni Vault</a>
+    <article class="card legal-card">
+      <h1>Privacy Policy</h1>
+      <p class="muted">Last updated {{ updated.strftime("%d %B %Y") }}</p>
+
+      <p>My Uni Vault is a free student project that lets students store their study files and plan their week. This page explains what information it uses and why.</p>
+
+      <h2>What we collect</h2>
+      <ul>
+        <li><strong>From your Google account</strong>, when you sign in: your name, email address, profile photo and Google account ID. We do not see your Google password, and we do not access Gmail, Drive, Contacts or any other Google data.</li>
+        <li><strong>What you add</strong>: files and folders you upload, timetable entries you write, and your settings (display name, time zone, theme).</li>
+      </ul>
+
+      <h2>How it is used</h2>
+      <ul>
+        <li>To sign you in and keep your vault private to your account.</li>
+        <li>To show your files, timetable and settings back to you.</li>
+      </ul>
+      <p>We do not sell your data, show ads, or share your data with anyone except the services needed to run the site (below).</p>
+
+      <h2>Where it is stored</h2>
+      <p>Files, timetable entries and settings are stored in <strong>Supabase</strong> Storage. Sign-in is handled by <strong>Google</strong>. The website runs on a hosting provider. Each user's data is kept in a separate private area and other users cannot see it. Preview and download links for your files expire after one hour.</p>
+
+      <h2>Cookies</h2>
+      <p>We use a single sign-in cookie to keep you logged in for up to 30 days. There are no tracking or advertising cookies.</p>
+
+      <h2>Storage limits</h2>
+      <p>Each account can store up to {{ quota }}.</p>
+
+      <h2>Deleting your data</h2>
+      <p>You can delete your account at any time from <strong>Settings → Delete account</strong>. This permanently removes all of your files, timetable entries and settings. You can also remove My Uni Vault's access to your Google account at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</p>
+
+      <h2>Contact</h2>
+      <p>Questions about this policy{% if contact %}: <a href="mailto:{{ contact }}">{{ contact }}</a>{% else %} can be sent to the site owner{% endif %}.</p>
+    </article>
+  </main>
+</body>
+</html>
