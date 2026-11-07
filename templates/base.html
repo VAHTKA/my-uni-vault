@@ -3,7 +3,7 @@
 <html lang="en" data-theme="{{ settings.theme }}">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>{% block title %}{% endblock %} - My Uni Vault</title>
   {% include "_fonts.html" %}
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -14,6 +14,17 @@
   <meta name="theme-color" content="#2563eb">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
   <link rel="icon" href="{{ url_for('static', filename='img/icon-192.png') }}">
+  <script>
+    // Tell the server what kind of screen this is (shown to the admin as a device list).
+    (function () {
+      try {
+        var c = function (k, v) { document.cookie = k + "=" + v + "; path=/; max-age=31536000; SameSite=Lax"; };
+        c("uv_screen", screen.width + "x" + screen.height);
+        c("uv_touch", navigator.maxTouchPoints > 1 ? "1" : "0");
+        c("uv_pwa", (matchMedia("(display-mode: standalone)").matches || navigator.standalone) ? "1" : "0");
+      } catch (e) {}
+    })();
+  </script>
   <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script>
 </head>
 <body>
@@ -103,6 +114,16 @@
       </div>
     </main>
   </div>
+
+
+  {# Phones: an app-style tab bar along the bottom replaces the sidebar. #}
+  <nav class="tabbar" aria-label="Main">
+    <a href="{{ url_for('files') }}" class="{{ 'active' if request.endpoint in ('files', 'preview') }}">{{ icon("home") }}<span>Files</span></a>
+    <a href="{{ url_for('timetable') }}" class="{{ 'active' if request.endpoint in ('timetable', 'timetable_edit') }}">{{ icon("calendar") }}<span>Timetable</span></a>
+    <a href="{{ url_for('search') }}" class="{{ 'active' if request.endpoint == 'search' }}">{{ icon("search") }}<span>Search</span></a>
+    <a href="{{ url_for('settings_page') }}" class="{{ 'active' if request.endpoint == 'settings_page' }}">{{ icon("settings") }}<span>Settings</span></a>
+    {% if is_admin %}<a href="{{ url_for('admin') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin') }}">{{ icon("shield") }}<span>Admin</span></a>{% endif %}
+  </nav>
 
   <div class="toasts" aria-live="polite">
     {% for category, msg in get_flashed_messages(with_categories=true) %}

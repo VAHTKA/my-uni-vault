@@ -73,6 +73,7 @@
       <dt>Google account</dt><dd>{{ user.email }}</dd>
       <dt>Name on Google</dt><dd>{{ user.name }}</dd>
     </dl>
+    <a class="btn" href="{{ url_for('logout') }}">{{ icon("logout") }} Log out</a>
   </section>
 
   <section class="card danger-zone">

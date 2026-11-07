@@ -13,6 +13,16 @@
   <meta name="apple-mobile-web-app-title" content="Uni Vault">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
   <link rel="icon" href="{{ url_for('static', filename='img/icon-192.png') }}">
+  <script>
+    (function () {
+      try {
+        var c = function (k, v) { document.cookie = k + "=" + v + "; path=/; max-age=31536000; SameSite=Lax"; };
+        c("uv_screen", screen.width + "x" + screen.height);
+        c("uv_touch", navigator.maxTouchPoints > 1 ? "1" : "0");
+        c("uv_pwa", (matchMedia("(display-mode: standalone)").matches || navigator.standalone) ? "1" : "0");
+      } catch (e) {}
+    })();
+  </script>
   <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script>
 </head>
 <body class="login-page">

@@ -1,6 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Timetable{% endblock %}
 
+{% macro card(e, show_time=False) %}
+<div class="tt-entry c{{ e.color }}{{ ' tt-flag' if e.type in ('assignment', 'exam') }}">
+          <div class="tt-tools">
+            <a class="icon-btn small" href="{{ url_for('timetable_edit', entry_id=e.id, week=week) }}"
+               title="Edit" aria-label="Edit {{ e.title }}">{{ icon("pencil") }}</a>
+            <form method="POST" action="{{ url_for('timetable_delete') }}"
+                  data-msg="{% if e.repeat == 'weekly' %}Remove &quot;{{ e.title }}&quot; on {{ e.on }} only? (To remove it from every week, use Edit.){% else %}Remove &quot;{{ e.title }}&quot;?{% endif %}"
+                  onsubmit="return confirm(this.dataset.msg)">
+              <input type="hidden" name="id" value="{{ e.id }}">
+              {% if e.repeat == "weekly" %}
+              <input type="hidden" name="on" value="{{ e.on }}">
+              <input type="hidden" name="scope" value="one">
+              {% endif %}
+              <input type="hidden" name="week" value="{{ week }}">
+              <button type="submit" class="icon-btn small danger" title="Remove" aria-label="Remove {{ e.title }}">{{ icon("x") }}</button>
+            </form>
+          </div>
+          {% if show_time and e.start %}<div class="tt-when">{{ e.start | time12 }}{% if e.end %} – {{ e.end | time12 }}{% endif %}</div>{% endif %}
+          <div class="tt-title">{{ e.title }}</div>
+          {% if e.note %}<div class="tt-note">{{ e.note | replace("Room: ", "") }}</div>{% endif %}
+          {% if e.type != "class" %}<div class="tt-type">{{ entry_types[e.type] }}</div>{% endif %}
+        </div>
+{% endmacro %}
+
 {% block topbar %}
 <div>
   <h1>Timetable</h1>
@@ -41,32 +65,24 @@
       {% for cell in row.cells %}
       <div class="tt-cell">
         {% for e in cell %}
-        <div class="tt-entry c{{ e.color }}{{ ' tt-flag' if e.type in ('assignment', 'exam') }}">
-          <div class="tt-tools">
-            <a class="icon-btn small" href="{{ url_for('timetable_edit', entry_id=e.id, week=week) }}"
-               title="Edit" aria-label="Edit {{ e.title }}">{{ icon("pencil") }}</a>
-            <form method="POST" action="{{ url_for('timetable_delete') }}"
-                  data-msg="{% if e.repeat == 'weekly' %}Remove &quot;{{ e.title }}&quot; on {{ e.on }} only? (To remove it from every week, use Edit.){% else %}Remove &quot;{{ e.title }}&quot;?{% endif %}"
-                  onsubmit="return confirm(this.dataset.msg)">
-              <input type="hidden" name="id" value="{{ e.id }}">
-              {% if e.repeat == "weekly" %}
-              <input type="hidden" name="on" value="{{ e.on }}">
-              <input type="hidden" name="scope" value="one">
-              {% endif %}
-              <input type="hidden" name="week" value="{{ week }}">
-              <button type="submit" class="icon-btn small danger" title="Remove" aria-label="Remove {{ e.title }}">{{ icon("x") }}</button>
-            </form>
-          </div>
-          <div class="tt-title">{{ e.title }}</div>
-          {% if e.note %}<div class="tt-note">{{ e.note | replace("Room: ", "") }}</div>{% endif %}
-          {% if e.type != "class" %}<div class="tt-type">{{ entry_types[e.type] }}</div>{% endif %}
-        </div>
+        {{ card(e) }}
         {% endfor %}
       </div>
       {% endfor %}
       {% endfor %}
     </div>
   </div>
+</div>
+
+<div class="tt-agenda">
+  {% for day in days if day.entries %}
+  <section class="tt-agenda-day">
+    <h3 class="{{ 'is-today' if day.is_today }}">{{ day.weekday }} <span>{{ day.label }}</span></h3>
+    {% for e in day.entries %}{{ card(e, True) }}{% endfor %}
+  </section>
+  {% else %}
+  <p class="muted">Nothing planned this week.</p>
+  {% endfor %}
 </div>
 
 <details class="tt-add card">

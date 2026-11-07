@@ -40,6 +40,25 @@
   </section>
 </div>
 
+<div class="section-title">Devices ({{ u.devices | length }})</div>
+<div class="card">
+  <table class="table">
+    <thead><tr><th>Device</th><th class="hide-sm">Screen</th><th>Last used</th><th class="hide-sm">First seen</th></tr></thead>
+    <tbody>
+      {% for d in u.devices %}
+      <tr>
+        <td class="name">{{ d.label }}</td>
+        <td class="num hide-sm">{{ d.screen or "—" }}</td>
+        <td class="num">{{ d.seen or "—" }}</td>
+        <td class="num hide-sm">{{ d.first or "—" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">No devices recorded yet. They appear after the next sign-in.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
 <div class="section-title">Files ({{ file_rows | length }})</div>
 {% if file_rows %}
 <div class="card">

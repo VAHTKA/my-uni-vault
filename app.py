@@ -238,6 +238,55 @@ def note_bucket_usage(delta):
         _total_usage["bytes"] = max(0, _total_usage["bytes"] + delta)
 
 
+MAX_DEVICES = 12
+
+
+def parse_device(ua, touch=False, installed=False):
+    """Turn a User-Agent into a short device label and kind (phone/tablet/desktop)."""
+    ua = ua or ""
+    if "iPhone" in ua:
+        name, kind = "iPhone", "phone"
+    elif "iPad" in ua or ("Macintosh" in ua and touch):  # iPadOS asks for the desktop site
+        name, kind = "iPad", "tablet"
+    elif "Android" in ua:
+        name, kind = ("Android phone", "phone") if "Mobile" in ua else ("Android tablet", "tablet")
+    elif "CrOS" in ua:
+        name, kind = "Chromebook", "desktop"
+    elif "Windows" in ua:
+        name, kind = "Windows PC", "desktop"
+    elif "Macintosh" in ua:
+        name, kind = "Mac", "desktop"
+    elif "Linux" in ua:
+        name, kind = "Linux PC", "desktop"
+    else:
+        name, kind = "Unknown device", "desktop"
+    for token, browser in (("Edg", "Edge"), ("OPR", "Opera"), ("CriOS", "Chrome"), ("FxiOS", "Firefox"),
+                           ("Firefox", "Firefox"), ("Chrome", "Chrome"), ("Safari", "Safari")):
+        if token in ua:
+            break
+    else:
+        browser = "Browser"
+    return {"label": f"{name} · {browser}" + (" (installed app)" if installed else ""), "kind": kind}
+
+
+def stamp_device(devices):
+    """Record this request's device in a profile's device list (newest {MAX_DEVICES} kept)."""
+    did = getattr(g, "device_id", None)
+    if not did:
+        return devices or {}
+    devices = dict(devices or {})
+    now = utc_now_iso()
+    info = parse_device(request.headers.get("User-Agent"), request.cookies.get("uv_touch") == "1",
+                        request.cookies.get("uv_pwa") == "1")
+    old = devices.get(did, {})
+    devices[did] = dict(info, screen=(request.cookies.get("uv_screen") or "")[:20],
+                        first_seen=old.get("first_seen") or now, last_seen=now)
+    if len(devices) > MAX_DEVICES:
+        keep = sorted(devices, key=lambda k: devices[k]["last_seen"], reverse=True)[:MAX_DEVICES]
+        devices = {k: devices[k] for k in keep}
+    return devices
+
+
 def save_profile(info):
     """Record who owns a vault, for the admin page; keeps the first sign-in date."""
     key = f"{user_root(info['sub'])}/{PROFILE_PATH}"
@@ -254,6 +303,7 @@ def save_profile(info):
         "last_seen": now,
         "last_active": now,
         "signed_out": "",
+        "devices": stamp_device(profile.get("devices")),
     })
     save_json(key, profile)
 
@@ -264,6 +314,7 @@ def update_profile(**fields):
     try:
         profile = load_json(key, {})
         profile.update(fields)
+        profile["devices"] = stamp_device(profile.get("devices"))
         save_json(key, profile)
     except Exception:
         pass
@@ -625,6 +676,29 @@ def inject_globals():
             ctx["sidebar_folders"] = []
         ctx["sidebar_subjects"] = load_subjects()
     return ctx
+
+
+@app.before_request
+def identify_device():
+    g.device_id = request.cookies.get("uv_did") or uuid.uuid4().hex[:16]
+    g.new_device_id = "uv_did" not in request.cookies
+
+
+@app.after_request
+def remember_device(res):
+    if getattr(g, "new_device_id", False) and request.endpoint != "static":
+        res.set_cookie("uv_did", g.device_id, max_age=60 * 60 * 24 * 365, httponly=True,
+                       samesite="Lax", secure=request.is_secure)
+    return res
+
+
+@app.before_request
+def use_canonical_host():
+    # Vercel also serves every deployment on its own long URL; Google only
+    # accepts the one registered redirect address, so send visitors to it.
+    host = os.environ.get("CANONICAL_HOST")
+    if host and request.host != host and request.endpoint != "static":
+        return redirect(f"https://{host}{request.full_path.rstrip('?')}", code=301)
 
 
 @app.before_request
@@ -1198,7 +1272,11 @@ def admin_user_summary(uid):
     used = sum(o["size"] for o in objects)
     offset = load_settings()["utc_offset"]
     status, status_label = online_status(profile)
+    devices = sorted((profile.get("devices") or {}).values(), key=lambda d: d.get("last_seen", ""), reverse=True)
+    devices = [dict(d, seen=local_time(d.get("last_seen"), offset), first=local_time(d.get("first_seen"), offset))
+               for d in devices]
     return {
+        "devices": devices,
         "id": uid,
         "status": status,
         "status_label": status_label,

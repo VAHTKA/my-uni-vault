@@ -923,7 +923,7 @@ img.avatar { object-fit: cover; background: var(--surface-2); }
 /* ---------- mobile ---------- */
 /* Phones & tablets: the sidebar stays on the left as a slim icon rail; the
    menu button expands it over the page into the full sidebar. */
-@media (max-width: 800px) {
+@media (max-width: 900px) {
   .sidebar {
     position: fixed;
     left: 0;
@@ -1060,3 +1060,132 @@ a.subj:hover { text-decoration: none; filter: brightness(.97); box-shadow: var(-
 :root[data-theme="dark"] .subj { filter: brightness(.82) saturate(.9); }
 .sidebar .subj-dot { display: inline-block; width: 14px; height: 14px; min-width: 14px; padding: 0; border-radius: 5px; background: var(--fg); opacity: .85; flex: none; }
 .sidebar .subj-dot.subj { background: var(--bg); box-shadow: inset 0 0 0 2px var(--fg); }
+
+/* ---------- site-wide look (matches the timetable card style) ---------- */
+:root { --radius: 14px; --card-grad: linear-gradient(160deg, var(--accent-soft), var(--surface) 70%); }
+:root[data-theme="dark"] { --card-grad: linear-gradient(160deg, #14233f, var(--surface) 70%); }
+@media (prefers-color-scheme: dark) { :root[data-theme="system"] { --card-grad: linear-gradient(160deg, #14233f, var(--surface) 70%); } }
+
+.card, .welcome, .today-card, .popover-panel, .empty-state {
+  background: var(--card-grad);
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+.card { overflow: hidden; }
+.empty-state { padding: 36px 20px; }
+.btn, .input, select.input, .icon-btn { border-radius: 12px; }
+.btn-primary { box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent); }
+.section-title { text-transform: uppercase; letter-spacing: .06em; font-size: 12px; font-weight: 700; color: var(--muted); }
+.table th { background: color-mix(in srgb, var(--surface-2) 70%, transparent); }
+.table tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 60%, transparent); }
+.folder-card { border-radius: 14px; background: var(--card-grad); }
+.sidebar a.active, .sidebar a.rail.active { border-radius: 12px; }
+.tag { border-radius: 999px; }
+.alert, .flash, .flash-message { border-radius: 14px; }
+.settings .card { border-radius: 18px; }
+
+/* ---------- app feel on touch devices ---------- */
+html { -webkit-text-size-adjust: 100%; }
+body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
+.tabbar, .tt-agenda { display: none; }
+.tt-when { font-size: 12px; font-weight: 700; opacity: .8; margin-bottom: 2px; }
+.tt-agenda-day h3 { margin: 18px 4px 8px; font-size: 15px; display: flex; gap: 8px; align-items: baseline; }
+.tt-agenda-day h3 span { font-size: 12px; font-weight: 500; color: var(--muted); }
+.tt-agenda-day h3.is-today { color: var(--accent); }
+.tt-agenda-day .tt-entry { margin-bottom: 8px; padding: 12px 14px; border-radius: 14px; }
+.tt-agenda-day .tt-tools { opacity: 1; }
+
+/* ---------- tablets (iPad): icon rail in portrait, compact sidebar in landscape ---------- */
+@media (min-width: 701px) and (max-width: 1100px) {
+  .content { padding: 20px 20px 40px; }
+  .btn, .input, select.input, .icon-btn { min-height: 44px; }
+  .sidebar { width: 220px; }
+  .tt-grid { min-width: calc(70px + var(--cols) * 110px); grid-template-columns: 70px repeat(var(--cols), minmax(0, 1fr)); }
+  .subj-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 701px) and (max-width: 900px) {
+  .sidebar:not(:has(#menu-toggle:checked)) { width: 72px; }
+  .main { margin-left: 72px; }
+  .toasts { left: 84px; }
+}
+
+/* ---------- phones: the whole layout becomes an app with a bottom tab bar ---------- */
+@media (max-width: 700px) {
+  html, body { background: var(--bg); }
+  .sidebar, .sidebar-backdrop { display: none !important; }
+  .main { margin-left: 0; padding-bottom: calc(68px + env(safe-area-inset-bottom)); min-height: 100dvh; }
+
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter: blur(12px);
+    flex-wrap: wrap; gap: 8px;
+  }
+  .topbar-main { flex: 1 1 100%; flex-wrap: wrap; gap: 8px; }
+  .theme-toggle { position: absolute; right: 12px; top: calc(10px + env(safe-area-inset-top)); }
+  .topbar h1, .crumbs { font-size: 22px; font-weight: 700; padding-right: 48px; }
+  .actions { width: 100%; display: flex; gap: 8px; }
+  .actions .btn, .actions form, .actions details { flex: 1; }
+  .actions .btn { width: 100%; justify-content: center; }
+  .content { padding: 14px 14px 24px; }
+
+  /* bottom tab bar */
+  .tabbar {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid var(--border);
+  }
+  .tabbar a {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 6px 2px; border-radius: 12px; color: var(--muted);
+    font-size: 11px; font-weight: 600; text-decoration: none; min-width: 0;
+  }
+  .tabbar a .icon { width: 24px; height: 24px; }
+  .tabbar a.active { color: var(--accent); background: var(--accent-soft); }
+
+  /* touch-friendly controls; 16px stops iOS zooming into inputs */
+  .btn, .input, select.input, .icon-btn { min-height: 46px; }
+  input, select, textarea, .input { font-size: 16px; }
+  .icon-btn { min-width: 44px; }
+
+  /* popovers become bottom sheets above the tab bar */
+  .popover-panel {
+    position: fixed; left: 12px; right: 12px; top: auto;
+    bottom: calc(76px + env(safe-area-inset-bottom)); width: auto; z-index: 60;
+    max-height: 70dvh; overflow: auto; box-shadow: 0 -8px 40px rgba(0, 0, 0, .25);
+  }
+
+  .subj-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .subj { padding: 12px; gap: 8px; }
+  .subj .icon { width: 22px; height: 22px; }
+  .folder-grid { grid-template-columns: 1fr 1fr; }
+  .welcome-text, .today-card { padding: 16px; }
+  .toasts { left: 12px; right: 12px; bottom: calc(80px + env(safe-area-inset-bottom)); }
+
+  /* timetable: a list of days instead of a wide grid */
+  .tt-card { display: none; }
+  .tt-agenda { display: block; }
+  .tt-add { margin-top: 18px; }
+
+  .table th, .table td { padding: 12px 10px; }
+  .settings { max-width: none; }
+}
+@media (display-mode: standalone) and (max-width: 700px) {
+  .topbar { padding-top: calc(14px + env(safe-area-inset-top)); }
+}
+@media (min-width: 701px) and (max-width: 900px) {
+  .content { padding: 16px 12px 40px; }
+  .tt-card { padding: 10px; }
+  .tt-grid { padding: 4px; gap: 4px; min-width: calc(60px + var(--cols) * 112px); grid-template-columns: 60px repeat(var(--cols), minmax(0, 1fr)); }
+  .tt-entry { padding: 7px 8px; font-size: 12px; overflow-wrap: break-word; word-break: normal; hyphens: auto; }
+  .tt-time { font-size: 11px; }
+}
+@media (min-width: 701px) and (max-width: 900px) {
+  .tt-title, .tt-note { overflow-wrap: break-word; padding-right: 0; }
+  .tt-entry .tt-tools { position: static; justify-content: flex-end; margin: -2px -2px 2px 0; }
+  .tt-entry .tt-tools .icon-btn { min-height: 28px; min-width: 28px; }
+}

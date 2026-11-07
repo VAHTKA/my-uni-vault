@@ -3,3 +3,6 @@ settings.json
 settings.json.migrated
 __pycache__/
 *.pyc
+
+.vercel
+.env*

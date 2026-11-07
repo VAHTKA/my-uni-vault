@@ -67,6 +67,7 @@
             <span class="user-cell">
               <span>{{ u.name or "Unknown user" }}{% if u.id == user.id %} <span class="badge">You</span>{% endif %}</span>
               <small class="muted">{{ u.email or "Signs in again to show email" }}</small>
+              {% if u.devices %}<small class="muted">{{ u.devices | map(attribute="label") | map("replace", " (installed app)", "") | map("truncate", 40, True, "") | unique | list | join(", ") }}</small>{% endif %}
             </span>
           </a>
         </td>
