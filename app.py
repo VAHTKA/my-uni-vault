@@ -29,11 +29,12 @@ import json
 import time
 import uuid
 import functools
+import zlib
 from datetime import date, datetime, timedelta, timezone
 
 from authlib.integrations.flask_client import OAuth
 from flask import (Flask, session, request, redirect, url_for, render_template,
-                   flash, send_file, abort, g)
+                   flash, send_file, abort, g, send_from_directory)
 from supabase import create_client
 from storage3.exceptions import StorageApiError
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -604,22 +605,40 @@ def nice_date(value):
     return d.strftime("%d %b %Y") if d else value
 
 
+@app.template_filter("time12")
+def time12(value):
+    """'14:00' -> '2:00 PM'; empty stays empty."""
+    if not value or not TIME_RE.match(value):
+        return value or ""
+    h, m = int(value[:2]), value[3:]
+    return f"{h % 12 or 12}:{m} {'AM' if h < 12 else 'PM'}"
+
+
 @app.context_processor
 def inject_globals():
     ctx = {"settings": load_settings(), "user": current_user(), "is_admin": is_admin(),
            "milesian_faces": MILESIAN_FACES}
     if current_user() and request.endpoint not in ("login", "privacy", "static"):
         try:
-            ctx["sidebar_folders"], ctx["sidebar_files"] = list_folder("")
+            ctx["sidebar_folders"] = list_folder("")[0]
         except Exception:
-            ctx["sidebar_folders"], ctx["sidebar_files"] = [], []
+            ctx["sidebar_folders"] = []
+        ctx["sidebar_subjects"] = load_subjects()
     return ctx
 
 
 @app.before_request
 def track_activity():
-    if current_user() and request.endpoint not in (None, "static", "logout", "ping"):
+    if current_user() and request.endpoint not in (None, "static", "logout", "ping", "service_worker"):
         record_activity()
+
+
+@app.route("/sw.js")
+def service_worker():
+    # Served from the root so the worker's scope covers the whole site.
+    res = send_from_directory(app.static_folder, "sw.js", mimetype="text/javascript")
+    res.headers["Cache-Control"] = "no-cache"
+    return res
 
 
 @app.route("/ping", methods=["POST"])
@@ -736,9 +755,14 @@ def files(folder):
         home = {"greeting": greeting, "date": now.strftime("%A, %d %B"),
                 "today": today, "upcoming": soon}
 
+    subjects = load_subjects()
+    by_folder = {x["folder"]: x for x in subjects}
+    current = by_folder.get(folder.split("/", 1)[0]) if folder else None
+    if not folder:
+        folders = [f for f in folders if f["name"] not in by_folder]
     return render_template("files.html", folder=folder, crumbs=breadcrumbs(folder),
                            folders=folders, files=file_list, home=home,
-                           entry_types=ENTRY_TYPES)
+                           entry_types=ENTRY_TYPES, subjects=subjects, current=current)
 
 
 @app.route("/view/<path:path>")
@@ -778,8 +802,19 @@ def preview(path):
 @login_required
 def upload():
     folder = clean_path(request.form.get("folder"))
-    incoming = [(secure_filename(f.filename or ""), f) for f in request.files.getlist("file")]
-    incoming = [(name, f) for name, f in incoming if name]
+    subject = request.form.get("subject", "")
+    if subject:
+        if subject not in {x["folder"] for x in load_subjects()}:
+            abort(400)
+        folder = subject
+
+    # A folder upload arrives with relative paths ("Week1/notes/a.pdf"); keep the structure.
+    incoming = []
+    for f in request.files.getlist("file"):
+        parts = [secure_filename(p) for p in (f.filename or "").replace("\\", "/").split("/")]
+        parts = [p for p in parts if p]
+        if parts:
+            incoming.append(("/".join(parts), f))
     if not incoming:
         flash("No file selected.", "error")
         return redirect(url_for("files", folder=folder))
@@ -865,6 +900,31 @@ def download(path):
 
 # ---------- timetable ----------
 
+def subject_color(title):
+    """Stable pastel colour index (0-7) for a subject, shared by timetable and files."""
+    return zlib.crc32(title.split()[0].encode()) % 8
+
+
+def subjects_from(entries):
+    """Distinct subjects in the timetable, keyed by their course code (first word)."""
+    out = {}
+    for e in entries:
+        title = e["title"].strip()
+        if not title or title.split()[0] in out:
+            continue
+        code, _, rest = title.partition(" ")
+        name = re.sub(r"\s*\([^)]*\)\s*$", "", rest).strip()
+        out[code] = {"code": code, "name": name, "folder": secure_filename(code), "color": subject_color(title)}
+    return sorted(out.values(), key=lambda x: x["code"])
+
+
+def load_subjects():
+    try:
+        return subjects_from(load_timetable())
+    except Exception:
+        return []
+
+
 @app.route("/timetable")
 @login_required
 def timetable():
@@ -897,9 +957,25 @@ def timetable():
     else:
         week_label = f"{start:%d} – {end:%d %b %Y}"
 
+    # Grid: weekdays always, weekend only if something is on it; one row per hour.
+    shown = [d for i, d in enumerate(days) if i < 5 or d["entries"]]
+    for d in shown:
+        for e in d["entries"]:
+            e["color"] = subject_color(e["title"])
+    hours = [int(e["start"][:2]) for d in shown for e in d["entries"] if e["start"]]
+    lo, hi = min([8] + hours), max([17] + hours)
+    rows = []
+    if any(not e["start"] for d in shown for e in d["entries"]):
+        rows.append({"label": "Anytime", "cells": [[e for e in d["entries"] if not e["start"]] for d in shown]})
+    for h in range(lo, hi + 1):
+        rows.append({
+            "label": time12(f"{h:02d}:00"),
+            "cells": [[e for e in d["entries"] if e["start"] and int(e["start"][:2]) == h] for d in shown],
+        })
+
     this_week = week_start(today)
     return render_template(
-        "timetable.html", days=days, week_label=week_label, entry_types=ENTRY_TYPES,
+        "timetable.html", days=days, shown=shown, rows=rows, week_label=week_label, entry_types=ENTRY_TYPES,
         week=start.isoformat(),
         prev_week=(start - timedelta(days=7)).isoformat(),
         next_week=(start + timedelta(days=7)).isoformat(),

@@ -31,13 +31,26 @@
     </form>
   </details>
 
-  <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data">
-    <input type="hidden" name="folder" value="{{ folder }}">
-    <label class="btn btn-primary upload-btn">
-      {{ icon("upload") }} Upload
-      <input type="file" name="file" multiple required onchange="this.form.submit()">
-    </label>
-  </form>
+  <details class="popover">
+    <summary class="btn btn-primary">{{ icon("upload") }} Upload</summary>
+    <form class="popover-panel upload-panel" method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+      <input type="hidden" name="folder" value="{{ folder }}">
+      <label for="up-subject">Subject</label>
+      <select class="input" id="up-subject" name="subject">
+        <option value="">{{ "This folder (" ~ folder ~ ")" if folder else "No subject (main folder)" }}</option>
+        {% for s in subjects %}
+        <option value="{{ s.folder }}"{{ " selected" if current and current.folder == s.folder }}>{{ s.code }} {{ s.name }}</option>
+        {% endfor %}
+      </select>
+      <label for="up-files">Files</label>
+      <input class="input" id="up-files" type="file" name="file" multiple>
+      <label for="up-dir">Or a whole folder</label>
+      <input class="input" id="up-dir" type="file" name="file" webkitdirectory multiple>
+      <div class="row">
+        <button type="submit" class="btn btn-primary btn-block">Upload</button>
+      </div>
+    </form>
+  </details>
 </div>
 {% endblock %}
 
@@ -67,7 +80,7 @@
       <li>
         <span class="tag tag-{{ e.type }}">{{ entry_types[e.type] }}</span>
         <span class="today-title">{{ e.title }}</span>
-        {% if e.start %}<span class="muted">{{ e.start }}{% if e.end %}–{{ e.end }}{% endif %}</span>{% endif %}
+        {% if e.start %}<span class="muted">{{ e.start | time12 }}{% if e.end %}–{{ e.end | time12 }}{% endif %}</span>{% endif %}
       </li>
       {% endfor %}
     </ul>
@@ -93,7 +106,7 @@
             <span class="today-title">{{ e.title }}</span>
             <span class="muted small">
               <span class="tag tag-{{ e.type }}">{{ entry_types[e.type] }}</span>
-              {{ e.day_label }}{% if e.start %}, {{ e.start }}{% endif %}
+              {{ e.day_label }}{% if e.start %}, {{ e.start | time12 }}{% endif %}
             </span>
           </span>
         </a>
@@ -108,7 +121,29 @@
 </section>
 {% endif %}
 
-{% if not folders and not files %}
+{% if not folder and subjects %}
+<div class="section-title">Subjects</div>
+<div class="subj-grid">
+  {% for s in subjects %}
+  <a class="subj c{{ s.color }}" href="{{ url_for('files', folder=s.folder) }}">
+    {{ icon("folder") }}
+    <span class="subj-text">
+      <span class="subj-code">{{ s.code }}</span>
+      <span class="subj-name">{{ s.name }}</span>
+    </span>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if current %}
+<div class="subj-banner subj c{{ current.color }}">
+  {{ icon("folder") }}
+  <span class="subj-text"><span class="subj-code">{{ current.code }}</span><span class="subj-name">{{ current.name }}</span></span>
+</div>
+{% endif %}
+
+{% if not folders and not files and (folder or not subjects) %}
 <div class="empty-state">
   {{ icon("upload") }}
   <h2>{{ "This folder is empty" if folder else "Your vault is empty" }}</h2>

@@ -7,6 +7,14 @@
   <title>{% block title %}{% endblock %} - My Uni Vault</title>
   {% include "_fonts.html" %}
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Uni Vault">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/icon-192.png') }}">
+  <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script>
 </head>
 <body>
   <div class="layout">
@@ -27,30 +35,24 @@
           {{ icon("search") }} <span>Search</span>
         </a>
 
-        <div class="nav-label">Folders</div>
+        <div class="nav-label">Data</div>
+        <a href="{{ url_for('files') }}" class="rail {{ 'active' if request.endpoint == 'files' and not folder }}" title="All files">
+          {{ icon("home") }} <span>All files</span>
+        </a>
+        {% for s in sidebar_subjects %}
+        <a href="{{ url_for('files', folder=s.folder) }}" title="{{ s.code }} {{ s.name }}"
+           class="{{ 'active' if folder and (folder == s.folder or folder.startswith(s.folder ~ '/')) }}">
+          <span class="subj-dot subj c{{ s.color }}"></span> <span>{{ s.name or s.code }}</span>
+        </a>
+        {% endfor %}
         {% for f in sidebar_folders %}
+        {% if f.name not in sidebar_subjects | map(attribute='folder') %}
         <a href="{{ url_for('files', folder=f.path) }}"
            class="{{ 'active' if folder and (folder == f.path or folder.startswith(f.path ~ '/')) }}">
           {{ icon("folder") }} <span>{{ f.name }}</span>
         </a>
-        {% else %}
-        <div class="empty-note">No folders yet</div>
-        {% endfor %}
-
-        <div class="nav-label">Files</div>
-        <a href="{{ url_for('files') }}" class="rail {{ 'active' if request.endpoint == 'files' and not folder }}" title="All files">
-          {{ icon("home") }} <span>All files</span>
-        </a>
-        {% for f in sidebar_files[:8] %}
-        <a href="{{ url_for('preview', path=f.path) }}" class="{{ 'active' if current_path == f.path }}">
-          {{ icon("file") }} <span>{{ f.name }}</span>
-        </a>
-        {% endfor %}
-        {% if sidebar_files | length > 8 %}
-        <a href="{{ url_for('files') }}" class="more">
-          <span>+ {{ sidebar_files | length - 8 }} more</span>
-        </a>
         {% endif %}
+        {% endfor %}
 
         <div class="nav-label">Planner</div>
         <a href="{{ url_for('timetable') }}" class="rail {{ 'active' if request.endpoint in ('timetable', 'timetable_edit') }}" title="Timetable">

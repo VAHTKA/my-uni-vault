@@ -7,6 +7,13 @@
   <title>Sign in - My Uni Vault</title>
   {% include "_fonts.html" %}
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Uni Vault">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
+  <link rel="icon" href="{{ url_for('static', filename='img/icon-192.png') }}">
+  <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script>
 </head>
 <body class="login-page">
   <!-- Faint wavy lines behind the card on larger screens -->

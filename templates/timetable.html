@@ -22,91 +22,78 @@
 <p class="week-hint muted">Nothing planned for this week yet. Use <strong>+ Add</strong> on any day to write in classes, assignments, exams or plans.</p>
 {% endif %}
 
-<div class="week-grid">
-  {% for day in days %}
-  <section class="day{{ ' is-today' if day.is_today }}" id="d-{{ day.date }}">
-    <header class="day-head">
-      <div>
-        <div class="day-name">{{ day.weekday }}</div>
-        <div class="day-date">{{ day.label }}</div>
+<div class="tt-card">
+  <div class="tt-head">
+    <span class="tt-head-icon">{{ icon("clock") }}</span>
+    <h2>Weekly Timetable</h2>
+  </div>
+  <div class="tt-scroll">
+    <div class="tt-grid" style="--cols: {{ shown | length }}">
+      <div class="tt-corner">Time</div>
+      {% for day in shown %}
+      <div class="tt-day{{ ' is-today' if day.is_today }}" id="d-{{ day.date }}">
+        {{ day.weekday }}<span>{{ day.label }}</span>
       </div>
-      {% if day.is_today %}<span class="badge">Today</span>{% endif %}
-    </header>
+      {% endfor %}
 
-    {% if day.entries %}
-    <ul class="entries">
-      {% for e in day.entries %}
-      <li class="entry entry-{{ e.type }}">
-        <div class="entry-top">
-          <span class="tag tag-{{ e.type }}">{{ entry_types[e.type] }}</span>
-          <div class="entry-tools">
+      {% for row in rows %}
+      <div class="tt-time">{{ row.label }}</div>
+      {% for cell in row.cells %}
+      <div class="tt-cell">
+        {% for e in cell %}
+        <div class="tt-entry c{{ e.color }}{{ ' tt-flag' if e.type in ('assignment', 'exam') }}">
+          <div class="tt-tools">
             <a class="icon-btn small" href="{{ url_for('timetable_edit', entry_id=e.id, week=week) }}"
                title="Edit" aria-label="Edit {{ e.title }}">{{ icon("pencil") }}</a>
-            {% if e.repeat == "weekly" %}
-            {# Repeating: the x removes only this week; "every week" lives on the edit page. #}
             <form method="POST" action="{{ url_for('timetable_delete') }}"
-                  data-msg="Remove &quot;{{ e.title }}&quot; on {{ day.short }} {{ day.label }} only? (To remove it from every week, use Edit.)"
+                  data-msg="{% if e.repeat == 'weekly' %}Remove &quot;{{ e.title }}&quot; on {{ e.on }} only? (To remove it from every week, use Edit.){% else %}Remove &quot;{{ e.title }}&quot;?{% endif %}"
                   onsubmit="return confirm(this.dataset.msg)">
               <input type="hidden" name="id" value="{{ e.id }}">
+              {% if e.repeat == "weekly" %}
               <input type="hidden" name="on" value="{{ e.on }}">
               <input type="hidden" name="scope" value="one">
-              <input type="hidden" name="week" value="{{ week }}">
-              <button type="submit" class="icon-btn small danger" title="Remove this week only" aria-label="Remove {{ e.title }} this week">{{ icon("x") }}</button>
-            </form>
-            {% else %}
-            <form method="POST" action="{{ url_for('timetable_delete') }}"
-                  data-msg="Remove &quot;{{ e.title }}&quot;?"
-                  onsubmit="return confirm(this.dataset.msg)">
-              <input type="hidden" name="id" value="{{ e.id }}">
+              {% endif %}
               <input type="hidden" name="week" value="{{ week }}">
               <button type="submit" class="icon-btn small danger" title="Remove" aria-label="Remove {{ e.title }}">{{ icon("x") }}</button>
             </form>
-            {% endif %}
           </div>
+          <div class="tt-title">{{ e.title }}</div>
+          {% if e.note %}<div class="tt-note">{{ e.note | replace("Room: ", "") }}</div>{% endif %}
+          {% if e.type != "class" %}<div class="tt-type">{{ entry_types[e.type] }}</div>{% endif %}
         </div>
-        <div class="entry-title">{{ e.title }}</div>
-        {% if e.repeat == "weekly" %}
-        <div class="entry-repeat">{{ icon("repeat") }} Weekly{% if e.until %} until {{ e.until | nice_date }}{% endif %}</div>
-        {% endif %}
-        {% if e.start %}
-        <div class="entry-time">{{ icon("clock") }} {{ e.start }}{% if e.end %} – {{ e.end }}{% endif %}</div>
-        {% endif %}
-        {% if e.note %}<div class="entry-note">{{ e.note }}</div>{% endif %}
-      </li>
+        {% endfor %}
+      </div>
       {% endfor %}
-    </ul>
-    {% else %}
-    <p class="day-empty">Free</p>
-    {% endif %}
-
-    <details class="day-add">
-      <summary>{{ icon("plus") }} Add</summary>
-      <form method="POST" action="{{ url_for('timetable_add') }}">
-        <input type="hidden" name="date" value="{{ day.date }}">
-        <input type="hidden" name="week" value="{{ week }}">
-        <input class="input" name="title" placeholder="e.g. Data Structures lecture" maxlength="100" required>
-        <select class="input" name="type" aria-label="Type">
-          {% for key, label in entry_types.items() %}
-          <option value="{{ key }}">{{ label }}</option>
-          {% endfor %}
-        </select>
-        <div class="time-row">
-          <input class="input" type="time" name="start" aria-label="Start time">
-          <span class="muted">to</span>
-          <input class="input" type="time" name="end" aria-label="End time">
-        </div>
-        <input class="input" name="note" placeholder="Room, lecturer or note (optional)" maxlength="300">
-        <label class="check">
-          <input type="checkbox" name="repeat" value="weekly"> Repeat every {{ day.weekday }}
-        </label>
-        <label class="until">
-          <span class="muted">Until (optional, e.g. end of semester)</span>
-          <input class="input" type="date" name="until" min="{{ day.date }}">
-        </label>
-        <button type="submit" class="btn btn-primary btn-block">Save</button>
-      </form>
-    </details>
-  </section>
-  {% endfor %}
+      {% endfor %}
+    </div>
+  </div>
 </div>
+
+<details class="tt-add card">
+  <summary>{{ icon("plus") }} Add to timetable</summary>
+  <form method="POST" action="{{ url_for('timetable_add') }}">
+    <input type="hidden" name="week" value="{{ week }}">
+    <input class="input" name="title" placeholder="e.g. Data Structures lecture" maxlength="100" required>
+    <div class="time-row">
+      <select class="input" name="date" aria-label="Day">
+        {% for day in days %}<option value="{{ day.date }}">{{ day.weekday }} {{ day.label }}</option>{% endfor %}
+      </select>
+      <select class="input" name="type" aria-label="Type">
+        {% for key, label in entry_types.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="time-row">
+      <input class="input" type="time" name="start" aria-label="Start time">
+      <span class="muted">to</span>
+      <input class="input" type="time" name="end" aria-label="End time">
+    </div>
+    <input class="input" name="note" placeholder="Room, lecturer or note (optional)" maxlength="300">
+    <label class="check"><input type="checkbox" name="repeat" value="weekly"> Repeat every week</label>
+    <label class="until">
+      <span class="muted">Until (optional, e.g. end of semester)</span>
+      <input class="input" type="date" name="until">
+    </label>
+    <button type="submit" class="btn btn-primary">Save</button>
+  </form>
+</details>
 {% endblock %}
