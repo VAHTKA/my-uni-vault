@@ -57,6 +57,7 @@
       {% for day in shown %}
       <div class="tt-day{{ ' is-today' if day.is_today }}" id="d-{{ day.date }}">
         {{ day.weekday }}<span>{{ day.label }}</span>
+        {% if day.reminders %}<em class="tt-bell" title="{{ day.reminders }} reminder{{ 's' if day.reminders != 1 }}">{{ icon("bell") }} {{ day.reminders }}</em>{% endif %}
       </div>
       {% endfor %}
 
@@ -84,6 +85,51 @@
   <p class="muted">Nothing planned this week.</p>
   {% endfor %}
 </div>
+
+<section class="reminders card" id="reminders">
+  <div class="tt-head">
+    <span class="tt-head-icon">{{ icon("bell") }}</span>
+    <h2>Reminders</h2>
+  </div>
+
+  <form class="rem-add" method="POST" action="{{ url_for('reminder_add') }}">
+    <input type="hidden" name="week" value="{{ week }}">
+    <input class="input rem-date" type="date" name="date" value="{{ today }}" aria-label="Date" required>
+    <input class="input rem-text" name="text" placeholder="Reminder, e.g. Submit assignment" maxlength="120" required>
+    <input class="input rem-note" name="note" placeholder="Note (optional)" maxlength="300">
+    <button type="submit" class="btn btn-primary">{{ icon("plus") }} Add</button>
+  </form>
+
+  {% for g in reminder_groups %}
+  <div class="rem-day{{ ' is-today' if g.is_today }}{{ ' overdue' if g.overdue }}">
+    <div class="rem-date-label">
+      {{ g.label }}
+      {% if g.is_today %}<span class="badge">Today</span>{% elif g.overdue %}<span class="badge badge-late">Overdue</span>{% endif %}
+    </div>
+    {% for r in g["items"] %}
+    <div class="rem-item{{ ' done' if r.done }}">
+      <form method="POST" action="{{ url_for('reminder_toggle') }}">
+        <input type="hidden" name="id" value="{{ r.id }}">
+        <input type="hidden" name="week" value="{{ week }}">
+        <input type="hidden" name="done" value="{{ '0' if r.done else '1' }}">
+        <input class="rem-check" type="checkbox" {{ 'checked' if r.done }} onchange="this.form.submit()" aria-label="Mark as done">
+      </form>
+      <div class="rem-body">
+        <div class="rem-title">{{ r.text }}</div>
+        {% if r.note %}<div class="rem-note-text">{{ r.note }}</div>{% endif %}
+      </div>
+      <form method="POST" action="{{ url_for('reminder_delete') }}" data-msg="Remove this reminder?" onsubmit="return confirm(this.dataset.msg)">
+        <input type="hidden" name="id" value="{{ r.id }}">
+        <input type="hidden" name="week" value="{{ week }}">
+        <button type="submit" class="icon-btn small danger" title="Remove" aria-label="Remove reminder">{{ icon("x") }}</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted rem-empty">No reminders yet. Pick a date above and add one.</p>
+  {% endfor %}
+</section>
 
 <details class="tt-add card">
   <summary>{{ icon("plus") }} Add to timetable</summary>

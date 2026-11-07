@@ -1189,3 +1189,26 @@ body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
   .tt-entry .tt-tools { position: static; justify-content: flex-end; margin: -2px -2px 2px 0; }
   .tt-entry .tt-tools .icon-btn { min-height: 28px; min-width: 28px; }
 }
+
+/* ---------- reminders ---------- */
+.reminders { margin-top: 20px; padding: 16px; }
+.rem-add { display: grid; grid-template-columns: 160px 1.2fr 1fr auto; gap: 8px; margin-bottom: 14px; }
+.rem-day { margin-top: 14px; }
+.rem-date-label { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; margin: 0 4px 6px; }
+.rem-day.is-today .rem-date-label { color: var(--accent); }
+.rem-day.overdue .rem-date-label { color: var(--danger); }
+.badge-late { background: var(--danger-soft); color: var(--danger); }
+.rem-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; margin-bottom: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.rem-item form { margin: 0; }
+.rem-check { width: 22px; height: 22px; accent-color: var(--accent); cursor: pointer; margin: 1px 0 0; }
+.rem-body { flex: 1; min-width: 0; }
+.rem-title { font-weight: 600; overflow-wrap: anywhere; }
+.rem-note-text { font-size: 13px; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+.rem-item.done .rem-title { text-decoration: line-through; color: var(--muted); }
+.rem-item.done { opacity: .7; }
+.rem-empty { margin: 8px 4px 0; }
+.tt-bell { display: inline-flex; align-items: center; gap: 3px; font-style: normal; font-size: 11px; font-weight: 700; color: var(--accent); margin-top: 2px; }
+.tt-bell .icon { width: 12px; height: 12px; }
+.tt-day.is-today .tt-bell { color: #fff; }
+@media (max-width: 900px) { .rem-add { grid-template-columns: 1fr 1fr; } .rem-add .rem-text, .rem-add .rem-note { grid-column: 1 / -1; } }
+@media (max-width: 700px) { .rem-add { grid-template-columns: 1fr; } .reminders { padding: 14px; } .rem-check { width: 26px; height: 26px; } }

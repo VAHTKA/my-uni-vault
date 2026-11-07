@@ -90,6 +90,7 @@ DATA_DIR = ".vault"
 SETTINGS_PATH = f"{DATA_DIR}/settings.json"
 TIMETABLE_PATH = f"{DATA_DIR}/timetable.json"
 PROFILE_PATH = f"{DATA_DIR}/profile.json"
+REMINDERS_PATH = f"{DATA_DIR}/reminders.json"
 USER_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 # Listing the whole bucket is slow, so its total size is cached briefly per
@@ -534,6 +535,32 @@ def load_timetable():
 def save_timetable(entries):
     entries.sort(key=lambda e: (e["date"], e["start"] or "99:99", e["title"].lower()))
     save_json(full(TIMETABLE_PATH), {"entries": entries})
+
+
+def load_reminders():
+    """The user's reminders: {id, date, text, note, done}; empty if none saved yet."""
+    return load_json(full(REMINDERS_PATH), {"reminders": []}).get("reminders", [])
+
+
+def save_reminders(items):
+    items.sort(key=lambda r: (r["date"], r["text"].lower()))
+    save_json(full(REMINDERS_PATH), {"reminders": items})
+
+
+def reminder_groups(items, today):
+    """Reminders grouped by date, soonest first, with overdue/today flags for display."""
+    groups = {}
+    for r in items:
+        d = parse_date(r["date"])
+        if d is None:
+            continue
+        g = groups.setdefault(r["date"], {
+            "date": r["date"], "label": f"{d:%A, %d %b %Y}", "is_today": d == today,
+            "overdue": d < today, "items": []})
+        g["items"].append(r)
+    for g in groups.values():
+        g["overdue"] = g["overdue"] and any(not r["done"] for r in g["items"])
+    return [groups[k] for k in sorted(groups)]
 
 
 def today_local():
@@ -1047,9 +1074,16 @@ def timetable():
             "cells": [[e for e in d["entries"] if e["start"] and int(e["start"][:2]) == h] for d in shown],
         })
 
+    try:
+        reminders = load_reminders()
+    except Exception:
+        reminders = []
+    for d in days:
+        d["reminders"] = sum(1 for r in reminders if r["date"] == d["date"] and not r["done"])
+
     this_week = week_start(today)
     return render_template(
-        "timetable.html", days=days, shown=shown, rows=rows, week_label=week_label, entry_types=ENTRY_TYPES,
+        "timetable.html", days=days, reminder_groups=reminder_groups(reminders, today), today=today.isoformat(), shown=shown, rows=rows, week_label=week_label, entry_types=ENTRY_TYPES,
         week=start.isoformat(),
         prev_week=(start - timedelta(days=7)).isoformat(),
         next_week=(start + timedelta(days=7)).isoformat(),
@@ -1138,6 +1172,54 @@ def timetable_delete():
     except Exception as e:
         flash(f"Could not remove entry: {e}", "error")
     return redirect(url_for("timetable", week=request.form.get("week", "")))
+
+
+def reminders_back():
+    return redirect(url_for("timetable", week=request.form.get("week", "")) + "#reminders")
+
+
+@app.route("/reminders/add", methods=["POST"])
+@login_required
+def reminder_add():
+    text = request.form.get("text", "").strip()[:120]
+    note = request.form.get("note", "").strip()[:300]
+    when = parse_date(request.form.get("date"))
+    if not text or when is None:
+        flash("Write the reminder and pick its date.", "error")
+        return reminders_back()
+    try:
+        items = load_reminders()
+        items.append({"id": uuid.uuid4().hex, "date": when.isoformat(), "text": text, "note": note, "done": False})
+        save_reminders(items)
+        flash(f"Reminder added for {when:%A %d %b}.", "success")
+    except Exception as e:
+        flash(f"Could not save reminder: {e}", "error")
+    return reminders_back()
+
+
+@app.route("/reminders/toggle", methods=["POST"])
+@login_required
+def reminder_toggle():
+    try:
+        items = load_reminders()
+        for r in items:
+            if r["id"] == request.form.get("id"):
+                r["done"] = request.form.get("done") == "1"
+        save_reminders(items)
+    except Exception as e:
+        flash(f"Could not update reminder: {e}", "error")
+    return reminders_back()
+
+
+@app.route("/reminders/delete", methods=["POST"])
+@login_required
+def reminder_delete():
+    try:
+        items = [r for r in load_reminders() if r["id"] != request.form.get("id")]
+        save_reminders(items)
+    except Exception as e:
+        flash(f"Could not remove reminder: {e}", "error")
+    return reminders_back()
 
 
 # ---------- search ----------
