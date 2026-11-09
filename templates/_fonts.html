@@ -1,7 +1,7 @@
 {# Milesian when its licensed files are in static/fonts/, otherwise Figtree. #}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
 {% if milesian_faces %}
 <style>
   {% for weight, file in milesian_faces %}

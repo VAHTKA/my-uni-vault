@@ -30,6 +30,8 @@ import time
 import uuid
 import functools
 import zlib
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 
 from authlib.integrations.flask_client import OAuth
@@ -63,6 +65,7 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     PERMANENT_SESSION_LIFETIME=timedelta(days=30),
     MAX_CONTENT_LENGTH=MAX_UPLOAD_MB * 1024 * 1024,
+    SEND_FILE_MAX_AGE_DEFAULT=60 * 60 * 24 * 7,  # static files are cached for a week
 )
 # Behind a host's HTTPS proxy (Render etc.), build https:// callback URLs.
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
@@ -168,18 +171,37 @@ def is_not_found(e):
     return isinstance(e, StorageApiError) and str(getattr(e, "status", "")) in ("400", "404")
 
 
+# Every page needs the settings, timetable and folder list; each is a round trip
+# to Supabase, so keep recent copies in memory. Saves update the cache straight
+# away; other server instances catch up within CACHE_TTL seconds.
+CACHE_TTL = 30
+_json_cache = {}   # bucket key -> (time, parsed JSON or _MISSING)
+_list_cache = {}   # bucket prefix -> (time, raw listing)
+_MISSING = object()
+
+
+def _fresh(entry):
+    return entry is not None and time.time() - entry[0] < CACHE_TTL
+
+
 def load_json(key, default):
     """Read a JSON object from the bucket; `default` only if it doesn't exist yet.
 
     Any other error is raised, so a failed read is never mistaken for "empty"
     and then saved over the real data.
     """
+    hit = _json_cache.get(key)
+    if _fresh(hit):
+        return default if hit[1] is _MISSING else json.loads(json.dumps(hit[1]))
     try:
         raw = bucket().download(key)
     except StorageApiError as e:
         if is_not_found(e):
+            _json_cache[key] = (time.time(), _MISSING)
             return default
         raise
+    data = json.loads(raw)
+    _json_cache[key] = (time.time(), data)
     return json.loads(raw)
 
 
@@ -188,6 +210,17 @@ def save_json(key, obj):
         "content-type": "application/json",
         "upsert": "true",
     })
+    _json_cache[key] = (time.time(), json.loads(json.dumps(obj)))
+
+
+def list_cached(prefix):
+    """bucket().list() for one folder, reused for a few seconds."""
+    hit = _list_cache.get(prefix)
+    if _fresh(hit):
+        return hit[1]
+    items = bucket().list(prefix, {"limit": 1000, "sortBy": {"column": "name", "order": "asc"}})
+    _list_cache[prefix] = (time.time(), items)
+    return items
 
 
 def walk_raw(prefix):
@@ -331,7 +364,30 @@ def record_activity():
     if now - session.get("last_ping", 0) < ACTIVITY_WRITE_SECONDS:
         return
     session["last_ping"] = now
-    update_profile(last_active=utc_now_iso(), signed_out="")
+    # Runs after the response is on its way, so no page waits on it.
+    key = full(PROFILE_PATH)
+    did = getattr(g, "device_id", None)
+    info = parse_device(request.headers.get("User-Agent"), request.cookies.get("uv_touch") == "1",
+                        request.cookies.get("uv_pwa") == "1")
+    screen = (request.cookies.get("uv_screen") or "")[:20]
+    threading.Thread(target=_write_activity, args=(key, did, info, screen), daemon=True).start()
+
+
+def _write_activity(key, did, info, screen):
+    try:
+        profile = load_json(key, {})
+        now = utc_now_iso()
+        devices = dict(profile.get("devices") or {})
+        if did:
+            old = devices.get(did, {})
+            devices[did] = dict(info, screen=screen, first_seen=old.get("first_seen") or now, last_seen=now)
+            if len(devices) > MAX_DEVICES:
+                keep = sorted(devices, key=lambda k: devices[k]["last_seen"], reverse=True)[:MAX_DEVICES]
+                devices = {k: devices[k] for k in keep}
+        profile.update(last_active=now, signed_out="", devices=devices)
+        save_json(key, profile)
+    except Exception:
+        pass
 
 
 def parse_iso(value):
@@ -383,7 +439,7 @@ def signed_url(path):
 def list_folder(folder):
     """Return (folders, files) directly inside one of the user's folders."""
     offset = load_settings()["utc_offset"]
-    items = bucket().list(full(folder), {"limit": 1000, "sortBy": {"column": "name", "order": "asc"}})
+    items = list_cached(full(folder))
     folders, files = [], []
     for item in items:
         name = item["name"]
@@ -408,6 +464,8 @@ def list_folder(folder):
 def remove_keys(keys):
     for i in range(0, len(keys), 100):
         bucket().remove(keys[i:i + 100])
+    _json_cache.clear()
+    _list_cache.clear()
     _total_usage["at"] = 0.0  # recount the bucket next time it's needed
 
 
@@ -692,8 +750,37 @@ def time12(value):
     return f"{h % 12 or 12}:{m} {'AM' if h < 12 else 'PM'}"
 
 
+@app.before_request
+def drop_stale_listings():
+    if request.method == "POST" and request.endpoint not in ("ping", "set_theme"):
+        _list_cache.clear()
+
+
+_pool = ThreadPoolExecutor(max_workers=4)
+
+
+def prefetch_page_data():
+    """Warm the cache for the settings, timetable and folder list at the same time."""
+    if not current_user() or request.endpoint in ("login", "privacy", "static"):
+        return
+    uid = session["user"]["id"]
+    root = user_root(uid)
+    jobs = []
+    for path in (SETTINGS_PATH, TIMETABLE_PATH):
+        if not _fresh(_json_cache.get(f"{root}/{path}")):
+            jobs.append(_pool.submit(lambda k=f"{root}/{path}": load_json(k, None)))
+    if not _fresh(_list_cache.get(root)):
+        jobs.append(_pool.submit(list_cached, root))
+    for j in jobs:
+        try:
+            j.result()
+        except Exception:
+            pass
+
+
 @app.context_processor
 def inject_globals():
+    prefetch_page_data()
     ctx = {"settings": load_settings(), "user": current_user(), "is_admin": is_admin(),
            "milesian_faces": MILESIAN_FACES}
     if current_user() and request.endpoint not in ("login", "privacy", "static"):
