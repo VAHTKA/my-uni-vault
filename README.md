@@ -2,7 +2,7 @@
 
 A personal study vault for university: upload and organise files into subject folders, keep a weekly timetable, and track assignments, exams and reminders. Sign in with Google; each person gets a private vault.
 
-**Live site:** https://my-uni-vault-hknmnoa35-vahtkas-projects.vercel.app
+**Live site:** https://my-uni-vault.vercel.app
 
 Built with Flask, Supabase Storage and Google sign-in. Installable on phones as an app.
 
