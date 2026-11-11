@@ -36,21 +36,33 @@
   </div>
 </div>
 
-<div class="card preview">
-  {% if mode == "image" %}
-  <div class="preview-image"><img src="{{ src }}" alt="{{ file.name }}"></div>
+<div class="card preview" id="pv" data-mode="{{ mode }}" data-src="{{ src or '' }}" data-name="{{ file.name }}">
+  {% if mode in ("image", "pdf", "docx", "sheet", "text") %}
+  <div class="pv-bar">
+    <button type="button" class="icon-btn" data-z="out" title="Zoom out" aria-label="Zoom out">{{ icon("minus") }}</button>
+    <button type="button" class="pv-level" data-z="reset" title="Reset zoom">100%</button>
+    <button type="button" class="icon-btn" data-z="in" title="Zoom in" aria-label="Zoom in">{{ icon("plus") }}</button>
+    <span class="pv-spacer"></span>
+    <span class="pv-count muted"></span>
+    <button type="button" class="btn" data-z="full" title="Full screen">{{ icon("expand") }} <span class="pv-full-label">Full screen</span></button>
+  </div>
+  {% endif %}
 
-  {% elif mode == "pdf" %}
-  <iframe class="preview-frame" src="{{ src }}" title="{{ file.name }}"></iframe>
+  {% if mode == "image" %}
+  <div class="pv-stage"><img class="pv-img" src="{{ src }}" alt="{{ file.name }}"></div>
+
+  {% elif mode in ("pdf", "docx", "sheet") %}
+  <div class="pv-stage"><div class="pv-doc pv-loading">Loading…</div></div>
+  <noscript><p class="muted" style="padding:16px">Turn on JavaScript to preview this file, or download it.</p></noscript>
 
   {% elif mode == "video" %}
-  <div class="preview-media"><video src="{{ src }}" controls preload="metadata"></video></div>
+  <div class="preview-media"><video src="{{ src }}" controls playsinline preload="metadata"></video></div>
 
   {% elif mode == "audio" %}
   <div class="preview-media"><audio src="{{ src }}" controls preload="metadata"></audio></div>
 
   {% elif mode == "text" %}
-  <pre class="preview-text">{{ text }}</pre>
+  <div class="pv-stage"><pre class="preview-text pv-doc">{{ text }}</pre></div>
 
   {% else %}
   <div class="preview-none">
@@ -64,4 +76,11 @@
   </div>
   {% endif %}
 </div>
+
+{% if mode in ("image", "pdf", "docx", "sheet", "text") %}
+{% if mode == "pdf" %}<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>{% endif %}
+{% if mode == "docx" %}<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>{% endif %}
+{% if mode == "sheet" %}<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>{% endif %}
+<script src="{{ url_for('static', filename='preview.js') }}"></script>
+{% endif %}
 {% endblock %}

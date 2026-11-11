@@ -128,6 +128,8 @@ FILE_KINDS = {
 PREVIEW_MODES = {
     **dict.fromkeys(["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif"], "image"),
     "pdf": "pdf",
+    "docx": "docx",
+    **dict.fromkeys(["xlsx", "xls"], "sheet"),
     **dict.fromkeys(["mp4", "webm", "mov", "m4v"], "video"),
     **dict.fromkeys(["mp3", "wav", "ogg", "m4a", "aac", "flac"], "audio"),
     **dict.fromkeys(["txt", "md", "csv", "tsv", "log", "json", "xml", "yml", "yaml", "ini",
@@ -135,6 +137,7 @@ PREVIEW_MODES = {
                      "sh", "bat", "ps1", "r", "m", "ipynb", "tex"], "text"),
 }
 TEXT_PREVIEW_LIMIT = 2 * 1024 * 1024
+DOC_PREVIEW_LIMIT = 25 * 1024 * 1024  # Word / Excel files are opened in the browser itself
 SIGNED_URL_SECONDS = 3600
 
 ENTRY_TYPES = {
@@ -974,6 +977,8 @@ def preview(path):
                 mode = "too_large"
             else:
                 text = bucket().download(full(path)).decode("utf-8", errors="replace")
+        elif mode in ("docx", "sheet") and info["bytes"] > DOC_PREVIEW_LIMIT:
+            mode = "too_large"
         elif mode != "none":
             # Media loads straight from Supabase via a short-lived link, which
             # gives the browser streaming/seeking for video and the PDF viewer.
