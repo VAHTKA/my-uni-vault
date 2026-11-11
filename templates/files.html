@@ -136,6 +136,18 @@
 </div>
 {% endif %}
 
+{# Upload bar: pick files and they upload straight away into this folder. #}
+<form class="upload-bar" method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data" data-dropzone>
+  <input type="hidden" name="folder" value="{{ folder }}">
+  <span class="upload-bar-text">{{ icon("upload") }} <span>Upload to <strong>{{ crumbs[-1].name if crumbs else "My Files" }}</strong></span></span>
+  <label class="btn btn-primary">{{ icon("plus") }} Choose files
+    <input type="file" name="file" multiple hidden data-autosubmit>
+  </label>
+  <label class="btn pick-dir">{{ icon("folder-plus") }} Choose a folder
+    <input type="file" name="file" webkitdirectory multiple hidden data-autosubmit>
+  </label>
+</form>
+
 {% if current %}
 <div class="subj-banner subj c{{ current.color }}">
   {{ icon("folder") }}
@@ -159,6 +171,12 @@
     <a class="folder-link" href="{{ url_for('files', folder=f.path) }}">
       {{ icon("folder") }} <span>{{ f.name }}</span>
     </a>
+    <form method="POST" action="{{ url_for('upload') }}" enctype="multipart/form-data">
+      <input type="hidden" name="folder" value="{{ f.path }}">
+      <label class="icon-btn" title="Upload files into {{ f.name }}" aria-label="Upload files into {{ f.name }}">{{ icon("upload") }}
+        <input type="file" name="file" multiple hidden data-autosubmit>
+      </label>
+    </form>
     <form method="POST" action="{{ url_for('delete') }}"
           data-msg="Delete folder &quot;{{ f.name }}&quot; and everything inside it?"
           onsubmit="return confirm(this.dataset.msg)">

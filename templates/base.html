@@ -28,6 +28,7 @@
   <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script>
 </head>
 <body>
+  <div class="uploading-note" role="status">Uploading… please wait</div>
   <div class="layout">
     {# Phones: a slim icon rail on the left; the menu button expands it into the full sidebar. #}
     <aside class="sidebar">
@@ -147,6 +148,31 @@
       }
       toast.querySelector("button").addEventListener("click", close);
       if (toast.classList.contains("toast-success")) setTimeout(close, 4000);
+    });
+
+    // File pickers marked data-autosubmit upload as soon as files are chosen;
+    // an upload bar also accepts files dropped onto it.
+    document.querySelectorAll("input[data-autosubmit]").forEach(function (input) {
+      input.addEventListener("change", function () {
+        if (!input.files.length) return;
+        document.body.classList.add("uploading");
+        input.form.submit();
+      });
+    });
+    document.querySelectorAll("[data-dropzone]").forEach(function (zone) {
+      ["dragenter", "dragover"].forEach(function (ev) {
+        zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add("drag"); });
+      });
+      ["dragleave", "drop"].forEach(function (ev) {
+        zone.addEventListener(ev, function () { zone.classList.remove("drag"); });
+      });
+      zone.addEventListener("drop", function (e) {
+        e.preventDefault();
+        var input = zone.querySelector("input[type=file]:not([webkitdirectory])");
+        if (!e.dataTransfer.files.length) return;
+        input.files = e.dataTransfer.files;
+        input.dispatchEvent(new Event("change"));
+      });
     });
 
     // Light/dark toggle: switch instantly, then save the choice in the background.

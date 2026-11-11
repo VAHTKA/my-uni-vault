@@ -1214,3 +1214,29 @@ body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
 .tt-day.is-today .tt-bell { color: #fff; }
 @media (max-width: 900px) { .rem-add { grid-template-columns: 1fr 1fr; } .rem-add .rem-text, .rem-add .rem-note { grid-column: 1 / -1; } }
 @media (max-width: 700px) { .rem-add { grid-template-columns: 1fr; } .reminders { padding: 14px; } .rem-check { width: 26px; height: 26px; } }
+
+/* ---------- upload bar & per-folder upload ---------- */
+.upload-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  padding: 12px 14px; margin-bottom: 16px;
+  border: 1.5px dashed var(--border); border-radius: 16px; background: var(--surface);
+}
+.upload-bar.drag { border-color: var(--accent); background: var(--accent-soft); }
+.upload-bar-text { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 0; color: var(--muted); }
+.upload-bar-text strong { color: var(--text); }
+.upload-bar label.btn { cursor: pointer; }
+.folder-card form { margin: 0; }
+.folder-card label.icon-btn { cursor: pointer; }
+.uploading-note {
+  display: none; position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 80;
+  padding: 10px 18px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 600;
+}
+body.uploading .uploading-note { display: block; }
+@media (hover: none) { .pick-dir { display: none; }  /* phones can't pick whole folders */ }
+@media (max-width: 700px) { .upload-bar label.btn { flex: 1 1 140px; justify-content: center; } }
+@media (max-width: 700px) {
+  /* name on its own line so it is never squeezed out by the upload / delete buttons */
+  .folder-card { flex-wrap: wrap; row-gap: 4px; padding: 12px; }
+  .folder-card a.folder-link { flex: 1 1 100%; }
+  .folder-card form:first-of-type { margin-left: auto; }
+}
