@@ -63,7 +63,8 @@ app.secret_key = os.environ["SECRET_KEY"]
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+    # Signed in for 4 days since the last visit; each visit extends it.
+    PERMANENT_SESSION_LIFETIME=timedelta(days=4),
     MAX_CONTENT_LENGTH=MAX_UPLOAD_MB * 1024 * 1024,
     SEND_FILE_MAX_AGE_DEFAULT=60 * 60 * 24 * 7,  # static files are cached for a week
 )
@@ -1261,8 +1262,21 @@ def timetable_delete():
     return redirect(url_for("timetable", week=request.form.get("week", "")))
 
 
+@app.route("/reminders")
+@login_required
+def reminders():
+    today = today_local()
+    try:
+        items = load_reminders()
+    except Exception as e:
+        flash(f"Could not load reminders: {e}", "error")
+        items = []
+    return render_template("reminders.html", reminder_groups=reminder_groups(items, today),
+                           today=today.isoformat(), open_count=sum(1 for r in items if not r["done"]))
+
+
 def reminders_back():
-    return redirect(url_for("timetable", week=request.form.get("week", "")) + "#reminders")
+    return redirect(url_for("reminders"))
 
 
 @app.route("/reminders/add", methods=["POST"])

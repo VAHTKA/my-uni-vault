@@ -591,7 +591,9 @@ h1, h2, h3 { margin: 0; line-height: 1.25; }
   display: grid;
   gap: 8px;
   width: min(380px, calc(100vw - 32px));
+  pointer-events: none;  /* the empty container must never block taps on the page */
 }
+.toast { pointer-events: auto; }
 .toast {
   --c: var(--accent);
   display: flex;
@@ -1164,7 +1166,7 @@ body { -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; }
   .subj .icon { width: 22px; height: 22px; }
   .folder-grid { grid-template-columns: 1fr 1fr; }
   .welcome-text, .today-card { padding: 16px; }
-  .toasts { left: 12px; right: 12px; bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .toasts { left: 12px; right: 12px; top: auto; bottom: calc(80px + env(safe-area-inset-bottom)); width: auto; }
 
   /* timetable: a list of days instead of a wide grid */
   .tt-card { display: none; }

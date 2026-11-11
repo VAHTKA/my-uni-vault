@@ -70,6 +70,10 @@
           {{ icon("calendar") }} <span>Timetable</span>
         </a>
 
+        <a href="{{ url_for('reminders') }}" class="rail {{ 'active' if request.endpoint == 'reminders' }}" title="Reminders">
+          {{ icon("bell") }} <span>Reminders</span>
+        </a>
+
         <div class="nav-label">Settings</div>
         <a href="{{ url_for('settings_page') }}" class="rail {{ 'active' if request.endpoint == 'settings_page' }}" title="Settings">
           {{ icon("settings") }} <span>Settings</span>
@@ -120,6 +124,7 @@
   <nav class="tabbar" aria-label="Main">
     <a href="{{ url_for('files') }}" class="{{ 'active' if request.endpoint in ('files', 'preview') }}">{{ icon("home") }}<span>Files</span></a>
     <a href="{{ url_for('timetable') }}" class="{{ 'active' if request.endpoint in ('timetable', 'timetable_edit') }}">{{ icon("calendar") }}<span>Timetable</span></a>
+    <a href="{{ url_for('reminders') }}" class="{{ 'active' if request.endpoint == 'reminders' }}">{{ icon("bell") }}<span>Reminders</span></a>
     <a href="{{ url_for('search') }}" class="{{ 'active' if request.endpoint == 'search' }}">{{ icon("search") }}<span>Search</span></a>
     <a href="{{ url_for('settings_page') }}" class="{{ 'active' if request.endpoint == 'settings_page' }}">{{ icon("settings") }}<span>Settings</span></a>
     {% if is_admin %}<a href="{{ url_for('admin') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin') }}">{{ icon("shield") }}<span>Admin</span></a>{% endif %}
