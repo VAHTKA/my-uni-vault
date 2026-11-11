@@ -60,8 +60,8 @@ html, body { margin: 0; }
 body {
   background: var(--bg);
   color: var(--text);
-  /* Milesian if its licensed files are installed (see app.py), else Figtree. */
-  font-family: "Milesian", "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  /* Outfit: the geometric typeface of the dashboard design. */
+  font-family: "Outfit", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   font-size: 14px;
   line-height: 1.5;
 }
@@ -1274,3 +1274,130 @@ body.pv-lock .tabbar, body.pv-lock .uploading-note { display: none; }
   .pv-full-label { display: none; }
   .pv-word { padding: 16px; margin: 0; }
 }
+
+/* ======================================================================
+   Dashboard design: near-black glass panels, mauve accent, pill controls.
+   (Subject / timetable colours above are kept so subjects stay distinct.)
+   ====================================================================== */
+:root {
+  --bg: #f4eff3; --surface: #ffffff; --surface-2: #f1e9ef; --border: #e4d8e0;
+  --text: #251b23; --muted: #7b6c77;
+  --accent: #8a5a7d; --accent-hover: #744a68; --accent-soft: #f0e3ec;
+  --accent-grad: linear-gradient(135deg, #b07fa0, #7d5476);
+  --nav-active: linear-gradient(90deg, #946489, #c7a0ba);
+  --sidebar: #ffffff; --glass: rgba(255, 255, 255, .72);
+  --page-glow: radial-gradient(1100px 600px at 70% -10%, #e9d6e3 0%, transparent 60%), radial-gradient(800px 500px at 0% 100%, #ece0ea 0%, transparent 55%);
+  --danger: #d6455d; --danger-soft: #fde8ec; --success: #1f9d55; --success-soft: #e3f6ea;
+  --shadow: 0 1px 2px rgba(60, 30, 55, .06), 0 6px 20px rgba(60, 30, 55, .06);
+  --radius: 18px;
+  --card-grad: linear-gradient(160deg, #f6eaf2, #ffffff 70%);
+}
+:root[data-theme="dark"] {
+  --bg: #0b090c; --surface: #141115; --surface-2: #1d181e; --border: rgba(255, 255, 255, .09);
+  --text: #f4f0f3; --muted: #a2979f;
+  --accent: #cc9bbb; --accent-hover: #dcb0cc; --accent-soft: #2d2230;
+  --accent-grad: linear-gradient(135deg, #b383a3, #7a5273);
+  --nav-active: linear-gradient(90deg, #96708d, #3a2c38 70%, #2a2029);
+  --sidebar: #080709; --glass: rgba(24, 20, 25, .72);
+  --page-glow: radial-gradient(1100px 650px at 75% -10%, #3b2e39 0%, transparent 62%), radial-gradient(900px 600px at 0% 105%, #2a2029 0%, transparent 58%);
+  --danger: #f4727f; --danger-soft: #3a1d22; --success: #4ade80; --success-soft: #153322;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 24px rgba(0, 0, 0, .35);
+  --card-grad: linear-gradient(160deg, #35283a, #141115 72%);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    --bg: #0b090c; --surface: #141115; --surface-2: #1d181e; --border: rgba(255, 255, 255, .09);
+    --text: #f4f0f3; --muted: #a2979f;
+    --accent: #cc9bbb; --accent-hover: #dcb0cc; --accent-soft: #2d2230;
+    --accent-grad: linear-gradient(135deg, #b383a3, #7a5273);
+    --nav-active: linear-gradient(90deg, #96708d, #3a2c38 70%, #2a2029);
+    --sidebar: #080709; --glass: rgba(24, 20, 25, .72);
+    --page-glow: radial-gradient(1100px 650px at 75% -10%, #3b2e39 0%, transparent 62%), radial-gradient(900px 600px at 0% 105%, #2a2029 0%, transparent 58%);
+    --danger: #f4727f; --danger-soft: #3a1d22; --success: #4ade80; --success-soft: #153322;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 24px rgba(0, 0, 0, .35);
+    --card-grad: linear-gradient(160deg, #35283a, #141115 72%);
+  }
+}
+
+body { background: var(--bg) var(--page-glow) fixed; letter-spacing: .005em; }
+h1, h2, h3, .crumbs { font-weight: 500; letter-spacing: 0; }
+
+/* sidebar: black panel, mauve gradient on the active item */
+.sidebar { background: var(--sidebar); border-right: 1px solid var(--border); }
+.brand { font-weight: 600; letter-spacing: .01em; }
+.brand .icon { color: var(--accent); }
+.nav a { border-radius: 14px; padding: 10px 12px; }
+.nav a:hover { background: var(--surface-2); }
+.nav a.active, .sidebar a.active, .sidebar a.rail.active { background: var(--nav-active); color: #fff; font-weight: 500; border-radius: 14px; }
+.nav a.active .icon { color: inherit; }
+.nav-label { letter-spacing: .1em; font-weight: 500; }
+.sidebar-search input { border-radius: 999px; background: var(--surface-2); border-color: var(--border); }
+.avatar { background: var(--accent-grad); }
+
+/* top bar: transparent, like a page header */
+.topbar { background: transparent; border-bottom: none; padding-top: 22px; padding-bottom: 8px; }
+.topbar h1 { font-size: 28px; font-weight: 500; }
+.crumbs { font-size: 26px; }
+.theme-btn { border-radius: 999px; background: var(--glass); border-color: var(--border); }
+
+/* pill controls */
+.btn, .input, select.input, .pv-level { border-radius: 999px; }
+.btn { background: var(--glass); border: 1px solid color-mix(in srgb, var(--text) 28%, transparent); font-weight: 500; padding: 9px 18px; }
+.btn:hover { background: var(--surface-2); }
+.btn-primary { background: var(--accent-grad); border-color: transparent; color: #fff; box-shadow: 0 4px 18px color-mix(in srgb, #b07fa0 35%, transparent); }
+.btn-primary:hover { background: var(--accent-grad); border-color: transparent; filter: brightness(1.08); }
+.icon-btn { border-radius: 999px; }
+.input, select.input, textarea.input { background: var(--surface-2); border-color: var(--border); padding: 10px 16px; }
+textarea.input { border-radius: 18px; }
+.input:focus, select.input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.badge, .tag { border-radius: 999px; }
+.badge { background: var(--accent-soft); color: var(--accent); }
+
+/* glass cards */
+.card, .welcome, .today-card, .popover-panel, .empty-state, .tt-card, .folder-card, .reminders {
+  background: var(--card-grad); border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow);
+}
+.upload-bar { border: 1.5px dashed color-mix(in srgb, var(--accent) 45%, transparent); background: var(--surface); border-radius: 22px; }
+.popover-panel { background: var(--surface); border-radius: 20px; }
+.folder-card { border-radius: 18px; }
+.folder-card:hover { border-color: var(--accent); }
+.rem-item, .tt-grid { background: color-mix(in srgb, var(--surface) 88%, transparent); border-color: var(--border); }
+.tt-head-icon { background: var(--accent-soft); color: var(--accent); box-shadow: none; }
+.tt-corner, .tt-day, .tt-time { background: var(--surface-2); border-radius: 12px; }
+.tt-day.is-today { background: var(--accent-grad); color: #fff; }
+:root[data-theme="dark"] .tt-card { background: var(--card-grad); }
+.table th { background: transparent; color: var(--muted); font-weight: 500; letter-spacing: .08em; }
+.table tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 55%, transparent); }
+.section-title { color: var(--muted); font-weight: 500; letter-spacing: .12em; }
+.file-icon { border-radius: 12px; background: var(--surface-2); }
+.welcome h2 { font-size: 30px; font-weight: 500; }
+.accent-text { color: var(--accent); }
+.welcome-stats strong { font-weight: 500; }
+.countdown { background: var(--accent-soft); color: var(--accent); border-radius: 999px; }
+.toast { border-radius: 18px; background: var(--surface); }
+.pv-bar { background: var(--surface); }
+.pv-tabs button.on { background: var(--accent-grad); border-color: transparent; }
+
+/* phone tab bar: floating dark pill */
+@media (max-width: 700px) {
+  .tabbar { left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); padding: 6px; border-radius: 26px;
+            background: var(--glass); border: 1px solid var(--border); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: var(--shadow); }
+  .tabbar a { border-radius: 20px; }
+  .tabbar a.active { background: var(--nav-active); color: #fff; }
+  .main { padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+  .topbar { background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(14px); }
+  .toasts { bottom: calc(96px + env(safe-area-inset-bottom)); }
+  .popover-panel { bottom: calc(96px + env(safe-area-inset-bottom)); }
+}
+
+/* ---------- long names stay readable (chapter numbers must not be cut off) ---------- */
+.folder-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.folder-card { flex-wrap: wrap; row-gap: 6px; }
+.folder-card a.folder-link { flex: 1 1 150px; min-width: 150px; }
+.folder-card a.folder-link span { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.3; }
+.folder-card form { flex: none; }
+.table td.name { width: auto; }
+.file-name { align-items: flex-start; }
+.file-name span:not(.file-icon) { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+.row-actions { white-space: nowrap; }
+@media (max-width: 700px) { .folder-card a.folder-link { flex: 1 1 100%; } .folder-card form:first-of-type { margin-left: auto; } }

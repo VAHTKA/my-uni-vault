@@ -1,7 +1,8 @@
 {
   "name": "My Uni Vault",
   "short_name": "Uni Vault",
-  "start_url": "/",
+  "id": "/",
+  "start_url": "/files/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -59,7 +59,7 @@
 <section class="welcome">
   <div class="welcome-text">
     <div class="welcome-date">{{ home.date }}</div>
-    <h2>{{ home.greeting }}, {{ settings.display_name }}</h2>
+    <h2>{{ home.greeting }}, <span class="accent-text">{{ settings.display_name }}</span></h2>
     <p class="muted">Here's an overview of your vault.</p>
     <div class="welcome-stats">
       <div><strong>{{ folders | length }}</strong><span>Folders</span></div>

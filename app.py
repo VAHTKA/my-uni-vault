@@ -796,6 +796,25 @@ def inject_globals():
     return ctx
 
 
+_asset_versions = {}
+
+
+@app.url_defaults
+def version_static_urls(endpoint, values):
+    """Add ?v=<hash> to static URLs: they can be cached for a week, yet a changed file is fetched at once."""
+    name = values.get("filename")
+    if endpoint != "static" or not name:
+        return
+    if name not in _asset_versions:
+        try:
+            with open(os.path.join(app.static_folder, name), "rb") as f:
+                _asset_versions[name] = format(zlib.crc32(f.read()), "x")
+        except OSError:
+            _asset_versions[name] = ""
+    if _asset_versions[name]:
+        values["v"] = _asset_versions[name]
+
+
 @app.before_request
 def identify_device():
     g.device_id = request.cookies.get("uv_did") or uuid.uuid4().hex[:16]

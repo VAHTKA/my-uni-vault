@@ -15,6 +15,10 @@
   <link rel="manifest" href="{{ url_for('static', filename='manifest.webmanifest') }}">
   <link rel="icon" href="{{ url_for('static', filename='img/icon-192.png') }}">
   <script>
+    // A saved copy of this page may carry an old theme; the last choice made on this device wins.
+    try { var uvt = localStorage.getItem("uv_theme"); if (uvt) document.documentElement.dataset.theme = uvt; } catch (e) {}
+  </script>
+  <script>
     // Tell the server what kind of screen this is (shown to the admin as a device list).
     (function () {
       try {
@@ -139,71 +143,6 @@
     </div>
     {% endfor %}
   </div>
-  <script>
-    // Success messages fade out on their own; errors stay until dismissed.
-    document.querySelectorAll(".toast").forEach(function (toast) {
-      function close() {
-        toast.classList.add("hide");
-        setTimeout(function () { toast.remove(); }, 300);
-      }
-      toast.querySelector("button").addEventListener("click", close);
-      if (toast.classList.contains("toast-success")) setTimeout(close, 4000);
-    });
-
-    // File pickers marked data-autosubmit upload as soon as files are chosen;
-    // an upload bar also accepts files dropped onto it.
-    document.querySelectorAll("input[data-autosubmit]").forEach(function (input) {
-      input.addEventListener("change", function () {
-        if (!input.files.length) return;
-        document.body.classList.add("uploading");
-        input.form.submit();
-      });
-    });
-    document.querySelectorAll("[data-dropzone]").forEach(function (zone) {
-      ["dragenter", "dragover"].forEach(function (ev) {
-        zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add("drag"); });
-      });
-      ["dragleave", "drop"].forEach(function (ev) {
-        zone.addEventListener(ev, function () { zone.classList.remove("drag"); });
-      });
-      zone.addEventListener("drop", function (e) {
-        e.preventDefault();
-        var input = zone.querySelector("input[type=file]:not([webkitdirectory])");
-        if (!e.dataTransfer.files.length) return;
-        input.files = e.dataTransfer.files;
-        input.dispatchEvent(new Event("change"));
-      });
-    });
-
-    // Light/dark toggle: switch instantly, then save the choice in the background.
-    (function () {
-      var form = document.querySelector(".theme-toggle");
-      var root = document.documentElement;
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        var current = root.dataset.theme;
-        if (current === "system") {
-          current = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-        }
-        var next = current === "dark" ? "light" : "dark";
-        root.dataset.theme = next;
-        var data = new FormData();
-        data.append("theme", next);
-        fetch(form.action, { method: "POST", body: data, credentials: "same-origin",
-                             headers: { "X-Requested-With": "fetch" } }).catch(function () {});
-      });
-    })();
-
-    // While this tab is visible, tell the server every 2 minutes that the user
-    // is still here (drives the online dot on the admin page).
-    (function () {
-      function ping() {
-        if (document.visibilityState !== "visible") return;
-        fetch("{{ url_for('ping') }}", { method: "POST", credentials: "same-origin" }).catch(function () {});
-      }
-      setInterval(ping, 120000);
-      document.addEventListener("visibilitychange", ping);
-    })();
-  </script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </body>
 </html>
