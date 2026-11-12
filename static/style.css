@@ -1280,42 +1280,45 @@ body.pv-lock .tabbar, body.pv-lock .uploading-note { display: none; }
    (Subject / timetable colours above are kept so subjects stay distinct.)
    ====================================================================== */
 :root {
-  --bg: #f4eff3; --surface: #ffffff; --surface-2: #f1e9ef; --border: #e4d8e0;
-  --text: #251b23; --muted: #7b6c77;
-  --accent: #8a5a7d; --accent-hover: #744a68; --accent-soft: #f0e3ec;
-  --accent-grad: linear-gradient(135deg, #b07fa0, #7d5476);
-  --nav-active: linear-gradient(90deg, #946489, #c7a0ba);
+  --bg: #eef3ef; --surface: #ffffff; --surface-2: #e8efe9; --border: #d5e1d8;
+  --text: #14201a; --muted: #5d6f64;
+  --accent: #166a45; --accent-hover: #0f5535; --accent-soft: #dfeee4;
+  --accent-grad: linear-gradient(135deg, #1b7a50, #0c4a2f);
+  --nav-active: linear-gradient(90deg, #1d7a50, #5fae86);
+  --btn-dark: #10261b; --btn-dark-2: #17362a;
   --sidebar: #ffffff; --glass: rgba(255, 255, 255, .72);
-  --page-glow: radial-gradient(1100px 600px at 70% -10%, #e9d6e3 0%, transparent 60%), radial-gradient(800px 500px at 0% 100%, #ece0ea 0%, transparent 55%);
+  --page-glow: radial-gradient(1100px 600px at 70% -10%, #d6e9dc 0%, transparent 60%), radial-gradient(800px 500px at 0% 100%, #e0eee4 0%, transparent 55%);
   --danger: #d6455d; --danger-soft: #fde8ec; --success: #1f9d55; --success-soft: #e3f6ea;
-  --shadow: 0 1px 2px rgba(60, 30, 55, .06), 0 6px 20px rgba(60, 30, 55, .06);
+  --shadow: 0 1px 2px rgba(15, 50, 30, .06), 0 6px 20px rgba(15, 50, 30, .07);
   --radius: 18px;
-  --card-grad: linear-gradient(160deg, #f6eaf2, #ffffff 70%);
+  --card-grad: linear-gradient(160deg, #e5f1e9, #ffffff 70%);
 }
 :root[data-theme="dark"] {
-  --bg: #0b090c; --surface: #141115; --surface-2: #1d181e; --border: rgba(255, 255, 255, .09);
-  --text: #f4f0f3; --muted: #a2979f;
-  --accent: #cc9bbb; --accent-hover: #dcb0cc; --accent-soft: #2d2230;
-  --accent-grad: linear-gradient(135deg, #b383a3, #7a5273);
-  --nav-active: linear-gradient(90deg, #96708d, #3a2c38 70%, #2a2029);
-  --sidebar: #080709; --glass: rgba(24, 20, 25, .72);
-  --page-glow: radial-gradient(1100px 650px at 75% -10%, #3b2e39 0%, transparent 62%), radial-gradient(900px 600px at 0% 105%, #2a2029 0%, transparent 58%);
+  --bg: #060b08; --surface: #0e1511; --surface-2: #16201a; --border: rgba(255, 255, 255, .09);
+  --text: #eef4f0; --muted: #93a39a;
+  --accent: #5fd09a; --accent-hover: #7fe0b1; --accent-soft: #11291d;
+  --accent-grad: linear-gradient(135deg, #1f9163, #0d5b3b);
+  --nav-active: linear-gradient(90deg, #2c8b62, #123626 70%, #0d241a);
+  --btn-dark: #10261b; --btn-dark-2: #17362a;
+  --sidebar: #040705; --glass: rgba(14, 21, 17, .72);
+  --page-glow: radial-gradient(1100px 650px at 75% -10%, #123a27 0%, transparent 62%), radial-gradient(900px 600px at 0% 105%, #0d2a1c 0%, transparent 58%);
   --danger: #f4727f; --danger-soft: #3a1d22; --success: #4ade80; --success-soft: #153322;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 24px rgba(0, 0, 0, .35);
-  --card-grad: linear-gradient(160deg, #35283a, #141115 72%);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 24px rgba(0, 0, 0, .4);
+  --card-grad: linear-gradient(160deg, #123524, #0e1511 72%);
 }
 @media (prefers-color-scheme: dark) {
   :root[data-theme="system"] {
-    --bg: #0b090c; --surface: #141115; --surface-2: #1d181e; --border: rgba(255, 255, 255, .09);
-    --text: #f4f0f3; --muted: #a2979f;
-    --accent: #cc9bbb; --accent-hover: #dcb0cc; --accent-soft: #2d2230;
-    --accent-grad: linear-gradient(135deg, #b383a3, #7a5273);
-    --nav-active: linear-gradient(90deg, #96708d, #3a2c38 70%, #2a2029);
-    --sidebar: #080709; --glass: rgba(24, 20, 25, .72);
-    --page-glow: radial-gradient(1100px 650px at 75% -10%, #3b2e39 0%, transparent 62%), radial-gradient(900px 600px at 0% 105%, #2a2029 0%, transparent 58%);
+    --bg: #060b08; --surface: #0e1511; --surface-2: #16201a; --border: rgba(255, 255, 255, .09);
+    --text: #eef4f0; --muted: #93a39a;
+    --accent: #5fd09a; --accent-hover: #7fe0b1; --accent-soft: #11291d;
+    --accent-grad: linear-gradient(135deg, #1f9163, #0d5b3b);
+    --nav-active: linear-gradient(90deg, #2c8b62, #123626 70%, #0d241a);
+    --btn-dark: #10261b; --btn-dark-2: #17362a;
+    --sidebar: #040705; --glass: rgba(14, 21, 17, .72);
+    --page-glow: radial-gradient(1100px 650px at 75% -10%, #123a27 0%, transparent 62%), radial-gradient(900px 600px at 0% 105%, #0d2a1c 0%, transparent 58%);
     --danger: #f4727f; --danger-soft: #3a1d22; --success: #4ade80; --success-soft: #153322;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 24px rgba(0, 0, 0, .35);
-    --card-grad: linear-gradient(160deg, #35283a, #141115 72%);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 8px 24px rgba(0, 0, 0, .4);
+    --card-grad: linear-gradient(160deg, #123524, #0e1511 72%);
   }
 }
 
@@ -1344,7 +1347,7 @@ h1, h2, h3, .crumbs { font-weight: 500; letter-spacing: 0; }
 .btn, .input, select.input, .pv-level { border-radius: 999px; }
 .btn { background: var(--glass); border: 1px solid color-mix(in srgb, var(--text) 28%, transparent); font-weight: 500; padding: 9px 18px; }
 .btn:hover { background: var(--surface-2); }
-.btn-primary { background: var(--accent-grad); border-color: transparent; color: #fff; box-shadow: 0 4px 18px color-mix(in srgb, #b07fa0 35%, transparent); }
+.btn-primary { background: var(--accent-grad); border-color: transparent; color: #fff; box-shadow: 0 4px 18px color-mix(in srgb, #1f9163 40%, transparent); }
 .btn-primary:hover { background: var(--accent-grad); border-color: transparent; filter: brightness(1.08); }
 .icon-btn { border-radius: 999px; }
 .input, select.input, textarea.input { background: var(--surface-2); border-color: var(--border); padding: 10px 16px; }
@@ -1401,3 +1404,23 @@ textarea.input { border-radius: 18px; }
 .file-name span:not(.file-icon) { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
 .row-actions { white-space: nowrap; }
 @media (max-width: 700px) { .folder-card a.folder-link { flex: 1 1 100%; } .folder-card form:first-of-type { margin-left: auto; } }
+
+/* bright mode: buttons turn dark while the page stays light */
+:root[data-theme="light"] .btn { background: var(--btn-dark-2); color: #fff; border-color: transparent; }
+:root[data-theme="light"] .btn:hover { background: var(--btn-dark); }
+:root[data-theme="light"] .btn-primary { background: linear-gradient(135deg, #14452f, #0a2a1c); box-shadow: 0 4px 14px rgba(10, 42, 28, .3); }
+:root[data-theme="light"] .btn-primary:hover { background: linear-gradient(135deg, #14452f, #0a2a1c); }
+:root[data-theme="light"] .btn-danger { background: #8f1f33; color: #fff; }
+:root[data-theme="light"] .theme-btn { background: var(--btn-dark-2); color: #fff; border-color: transparent; }
+:root[data-theme="light"] .pv-level { background: var(--btn-dark-2); color: #fff; border-color: transparent; }
+:root[data-theme="light"] .pv-tabs button { background: var(--btn-dark-2); color: #fff; border-color: transparent; }
+@media (prefers-color-scheme: light) {
+  :root[data-theme="system"] .btn { background: var(--btn-dark-2); color: #fff; border-color: transparent; }
+  :root[data-theme="system"] .btn:hover { background: var(--btn-dark); }
+  :root[data-theme="system"] .btn-primary { background: linear-gradient(135deg, #14452f, #0a2a1c); box-shadow: 0 4px 14px rgba(10, 42, 28, .3); }
+  :root[data-theme="system"] .btn-primary:hover { background: linear-gradient(135deg, #14452f, #0a2a1c); }
+  :root[data-theme="system"] .btn-danger { background: #8f1f33; color: #fff; }
+  :root[data-theme="system"] .theme-btn { background: var(--btn-dark-2); color: #fff; border-color: transparent; }
+  :root[data-theme="system"] .pv-level { background: var(--btn-dark-2); color: #fff; border-color: transparent; }
+  :root[data-theme="system"] .pv-tabs button { background: var(--btn-dark-2); color: #fff; border-color: transparent; }
+}
