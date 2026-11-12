@@ -74,6 +74,17 @@
     applyZoom();
   }
 
+  // ----- Microsoft viewer (slides, old office files): the frame itself grows, the stage scrolls -----
+  if (mode === "office") {
+    var frame = box.querySelector(".pv-office");
+    applyZoom = function () {
+      frame.style.width = (scale * 100) + "%";
+      frame.style.height = Math.round(stage.clientHeight * scale) + "px";
+    };
+    window.addEventListener("resize", applyZoom);
+    applyZoom();
+  }
+
   // ----- plain text: font size follows the zoom -----
   if (mode === "text") {
     applyZoom = function () { doc.style.fontSize = (13 * scale) + "px"; };

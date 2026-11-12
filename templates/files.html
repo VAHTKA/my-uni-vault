@@ -122,7 +122,7 @@
 {% endif %}
 
 {% if not folder and subjects %}
-<div class="section-title">Subjects</div>
+<div class="section-title home-subjects-title">Subjects</div>
 <div class="subj-grid">
   {% for s in subjects %}
   <a class="subj c{{ s.color }}" href="{{ url_for('files', folder=s.folder) }}">

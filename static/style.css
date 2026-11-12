@@ -1428,3 +1428,18 @@ textarea.input { border-radius: 18px; }
 /* Microsoft online viewer (slides and older office files) */
 .pv-note { margin: 0; padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--border); }
 .preview-frame { width: 100%; height: 78vh; height: 78dvh; border: 0; background: #fff; }
+
+/* Microsoft viewer frame sits inside the zoomable stage */
+.pv-stage-office { background: #000; }
+.pv-office { display: block; width: 100%; height: 100%; border: 0; }
+
+/* phone home: greeting, then the subjects, then Today and Upcoming (tablet and laptop unchanged) */
+@media (max-width: 700px) {
+  .content:has(.welcome) { display: flex; flex-direction: column; }
+  .content:has(.welcome) > * { order: 3; }
+  .content:has(.welcome) > .welcome { display: contents; }
+  .content:has(.welcome) > .welcome .welcome-text { order: 0; margin-bottom: 18px; background: var(--card-grad); border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow); }
+  .content:has(.welcome) > .home-subjects-title,
+  .content:has(.welcome) > .subj-grid { order: 1; }
+  .content:has(.welcome) > .welcome .today-card { order: 2; margin-bottom: 12px; }
+}

@@ -37,7 +37,7 @@
 </div>
 
 <div class="card preview" id="pv" data-mode="{{ mode }}" data-src="{{ src or '' }}" data-name="{{ file.name }}">
-  {% if mode in ("image", "pdf", "docx", "sheet", "text") %}
+  {% if mode in ("image", "pdf", "docx", "sheet", "text", "office") %}
   <div class="pv-bar">
     <button type="button" class="icon-btn" data-z="out" title="Zoom out" aria-label="Zoom out">{{ icon("minus") }}</button>
     <button type="button" class="pv-level" data-z="reset" title="Reset zoom">100%</button>
@@ -57,7 +57,7 @@
 
   {% elif mode == "office" %}
   <p class="pv-note muted">This file type is shown with Microsoft's free online viewer, which is sent a temporary link to the file (valid for one hour). Download it instead if you would rather not.</p>
-  <iframe class="preview-frame" src="https://view.officeapps.live.com/op/embed.aspx?src={{ src | urlencode }}" title="{{ file.name }}" allowfullscreen></iframe>
+  <div class="pv-stage pv-stage-office"><iframe class="pv-office" src="https://view.officeapps.live.com/op/embed.aspx?src={{ src | urlencode }}" title="{{ file.name }}" allowfullscreen></iframe></div>
 
   {% elif mode == "video" %}
   <div class="preview-media"><video src="{{ src }}" controls playsinline preload="metadata"></video></div>
@@ -81,7 +81,7 @@
   {% endif %}
 </div>
 
-{% if mode in ("image", "pdf", "docx", "sheet", "text") %}
+{% if mode in ("image", "pdf", "docx", "sheet", "text", "office") %}
 {% if mode == "pdf" %}<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>{% endif %}
 {% if mode == "docx" %}<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>{% endif %}
 {% if mode == "sheet" %}<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>{% endif %}
