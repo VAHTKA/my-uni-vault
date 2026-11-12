@@ -132,6 +132,8 @@ PREVIEW_MODES = {
     "pdf": "pdf",
     "docx": "docx",
     **dict.fromkeys(["xlsx", "xls"], "sheet"),
+    # Slides and older / other office formats can't be drawn reliably in the browser: Microsoft's free viewer shows them.
+    **dict.fromkeys(["pptx", "ppt", "doc", "odt", "odp", "ods", "rtf"], "office"),
     **dict.fromkeys(["mp4", "webm", "mov", "m4v"], "video"),
     **dict.fromkeys(["mp3", "wav", "ogg", "m4a", "aac", "flac"], "audio"),
     **dict.fromkeys(["txt", "md", "csv", "tsv", "log", "json", "xml", "yml", "yaml", "ini",
@@ -998,7 +1000,7 @@ def preview(path):
                 mode = "too_large"
             else:
                 text = bucket().download(full(path)).decode("utf-8", errors="replace")
-        elif mode in ("docx", "sheet") and info["bytes"] > DOC_PREVIEW_LIMIT:
+        elif mode in ("docx", "sheet", "office") and info["bytes"] > DOC_PREVIEW_LIMIT:
             mode = "too_large"
         elif mode != "none":
             # Media loads straight from Supabase via a short-lived link, which

@@ -55,6 +55,10 @@
   <div class="pv-stage"><div class="pv-doc pv-loading">Loading…</div></div>
   <noscript><p class="muted" style="padding:16px">Turn on JavaScript to preview this file, or download it.</p></noscript>
 
+  {% elif mode == "office" %}
+  <p class="pv-note muted">This file type is shown with Microsoft's free online viewer, which is sent a temporary link to the file (valid for one hour). Download it instead if you would rather not.</p>
+  <iframe class="preview-frame" src="https://view.officeapps.live.com/op/embed.aspx?src={{ src | urlencode }}" title="{{ file.name }}" allowfullscreen></iframe>
+
   {% elif mode == "video" %}
   <div class="preview-media"><video src="{{ src }}" controls playsinline preload="metadata"></video></div>
 
