@@ -31,12 +31,14 @@ import uuid
 import functools
 import zlib
 import threading
+import urllib.parse
+import requests
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 
 from authlib.integrations.flask_client import OAuth
 from flask import (Flask, session, request, redirect, url_for, render_template,
-                   flash, send_file, abort, g, send_from_directory)
+                   flash, send_file, abort, g, send_from_directory, jsonify)
 from supabase import create_client
 from storage3.exceptions import StorageApiError
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -1066,6 +1068,77 @@ def upload():
     for msg in failed:
         flash(f"Upload failed: {msg}", "error")
     return redirect(url_for("files", folder=folder))
+
+
+def signed_upload_url(key):
+    """A one-off address the browser can PUT a file to directly.
+
+    Vercel refuses request bodies over about 4.5 MB, so files go from the
+    browser straight to Supabase Storage; the server only approves them.
+    """
+    base = os.environ["SUPABASE_URL"].rstrip("/")
+    secret = os.environ["SUPABASE_KEY"]
+    res = requests.post(
+        f"{base}/storage/v1/object/upload/sign/{BUCKET}/{urllib.parse.quote(key)}",
+        headers={"apikey": secret, "Authorization": f"Bearer {secret}", "x-upsert": "true"}, timeout=15)
+    res.raise_for_status()
+    return f"{base}/storage/v1{res.json()['url']}"
+
+
+@app.route("/upload/sign", methods=["POST"])
+@login_required
+def upload_sign():
+    """Check quota for a batch of files and hand back an upload address for each."""
+    data = request.get_json(silent=True) or {}
+    folder = clean_path(data.get("folder"))
+    subject = data.get("subject") or ""
+    if subject:
+        if subject not in {x["folder"] for x in load_subjects()}:
+            abort(400)
+        folder = subject
+    try:
+        used, total = usage_bytes(), bucket_usage_bytes()
+    except Exception as e:
+        return jsonify(error=f"Upload failed: {e}"), 502
+
+    items, errors = [], []
+    for i, f in enumerate((data.get("files") or [])[:500]):
+        parts = [secure_filename(p) for p in str(f.get("name", "")).replace("\\", "/").split("/")]
+        name = "/".join(p for p in parts if p)
+        size = int(f.get("size") or 0)
+        if not name:
+            continue
+        if size > MAX_UPLOAD_MB * 1024 * 1024:
+            errors.append(f"{name} (over the {MAX_UPLOAD_MB} MB limit for one file)")
+        elif total + size > TOTAL_STORAGE_BYTES:
+            errors.append(f"{name} (the site's shared storage is full right now, please try again later)")
+        elif used + size > USER_QUOTA_BYTES:
+            left = max(USER_QUOTA_BYTES - used, 0)
+            errors.append(f"{name} (not enough space: {human_size(left)} left of {human_size(USER_QUOTA_BYTES)})")
+        else:
+            try:
+                items.append({"i": i, "name": name, "url": signed_upload_url(full(join(folder, name)))})
+                used += size
+                total += size
+            except Exception as e:
+                errors.append(f"{name} ({e})")
+    return jsonify(items=items, errors=errors, folder=folder)
+
+
+@app.route("/upload/done", methods=["POST"])
+@login_required
+def upload_done():
+    """The browser finished sending files: refresh what the server remembers and report."""
+    data = request.get_json(silent=True) or {}
+    folder = clean_path(data.get("folder"))
+    uploaded = int(data.get("uploaded") or 0)
+    _list_cache.clear()
+    _total_usage["at"] = 0.0  # recount the bucket next time it's needed
+    if uploaded:
+        flash(f"Uploaded {uploaded} file{'s' if uploaded != 1 else ''}.", "success")
+    for msg in (data.get("failed") or [])[:10]:
+        flash(f"Upload failed: {str(msg)[:200]}", "error")
+    return jsonify(url=url_for("files", folder=folder))
 
 
 @app.route("/folder", methods=["POST"])

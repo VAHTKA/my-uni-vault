@@ -27,8 +27,7 @@
     root.querySelectorAll("input[data-autosubmit]").forEach(function (input) {
       input.addEventListener("change", function () {
         if (!input.files.length) return;
-        document.body.classList.add("uploading");
-        input.form.submit();
+        startUpload(input.form);
       });
     });
     root.querySelectorAll("[data-dropzone]").forEach(function (zone) {
@@ -48,6 +47,84 @@
     });
   }
   init(document);
+
+  // ----- uploads: the browser sends files straight to storage (the site's server
+  // can't take big request bodies); the server only approves and records them -----
+  var uploading = false;
+
+  function postJSON(url, body) {
+    return fetch(url, { method: "POST", credentials: "same-origin",
+                        headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "Upload failed"); return j; }); });
+  }
+
+  function putFile(url, file, onProgress) {
+    return new Promise(function (resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open("PUT", url);
+      xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+      xhr.upload.onprogress = function (e) { if (e.lengthComputable) onProgress(e.loaded); };
+      xhr.onload = function () { xhr.status < 300 ? resolve() : reject(new Error("HTTP " + xhr.status)); };
+      xhr.onerror = function () { reject(new Error("network error")); };
+      xhr.send(file);
+    });
+  }
+
+  function startUpload(form) {
+    if (uploading) return;
+    var files = [];
+    form.querySelectorAll("input[type=file]").forEach(function (input) {
+      Array.prototype.forEach.call(input.files, function (f) { files.push({ file: f, name: f.webkitRelativePath || f.name }); });
+    });
+    if (!files.length) { return; }
+    var field = function (n) { var el = form.querySelector("[name=" + n + "]"); return el ? el.value : ""; };
+    var folder = field("folder"), subject = field("subject");
+    var note = document.querySelector(".uploading-note");
+    var say = function (t) { if (note) note.textContent = t; };
+    uploading = true;
+    document.body.classList.add("uploading");
+    say("Preparing upload…");
+
+    postJSON("/upload/sign", { folder: folder, subject: subject,
+                               files: files.map(function (f) { return { name: f.name, size: f.file.size }; }) })
+      .then(function (plan) {
+        var failed = plan.errors.slice(), done = 0, loaded = {}, totalBytes = 0, next = 0;
+        plan.items.forEach(function (it) { totalBytes += files[it.i].file.size; });
+        function progress() {
+          var sum = 0; for (var k in loaded) sum += loaded[k];
+          say("Uploading " + done + " of " + plan.items.length + (totalBytes ? " · " + Math.round(sum * 100 / totalBytes) + "%" : ""));
+        }
+        function worker() {
+          if (next >= plan.items.length) return Promise.resolve();
+          var it = plan.items[next++], f = files[it.i].file;
+          return putFile(it.url, f, function (n) { loaded[it.i] = n; progress(); })
+            .then(function () { done++; loaded[it.i] = f.size; progress(); })
+            .catch(function (e) { failed.push(it.name + " (" + e.message + ")"); })
+            .then(worker);
+        }
+        progress();
+        return Promise.all([worker(), worker(), worker()]).then(function () {
+          say("Finishing…");
+          return postJSON("/upload/done", { folder: plan.folder, uploaded: done, failed: failed });
+        });
+      })
+      .then(function (res) { dropPages(); location.href = res.url; })
+      .catch(function (e) {
+        uploading = false;
+        document.body.classList.remove("uploading");
+        alert(e.message || "Upload failed");
+      });
+  }
+
+  // The top "Upload" panel posts a form: take it over so big files work too.
+  document.addEventListener("submit", function (e) {
+    var form = e.target;
+    if (form.getAttribute && /\/upload$/.test(form.getAttribute("action") || "") && window.XMLHttpRequest && window.fetch) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      startUpload(form);
+    }
+  }, true);
 
   // Any form that changes data makes the saved pages out of date.
   document.addEventListener("submit", function (e) {
