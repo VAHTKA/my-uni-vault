@@ -87,7 +87,7 @@
         </a>
         <a href="{{ url_for('ebwise') }}" class="rail {{ 'active' if request.endpoint and request.endpoint.startswith('ebwise') }}" title="eBwise notifications">
           <span class="icon-wrap">{{ icon("megaphone") }}{% if ebwise_unseen %}<b class="notif-badge rail-dot">{{ ebwise_unseen }}</b>{% endif %}</span>
-          <span>eBwise notifications</span>{% if ebwise_unseen %}<b class="notif-badge side-count">{{ ebwise_unseen }}</b>{% endif %}
+          <span>eBwise</span>{% if ebwise_unseen %}<b class="notif-badge side-count">{{ ebwise_unseen }}</b>{% endif %}
         </a>
         {% endif %}
 

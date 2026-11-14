@@ -1502,3 +1502,18 @@ textarea.input { border-radius: 18px; }
 .eb-from { display: grid; grid-template-columns: 70px 1fr; gap: 4px 12px; margin: 0 0 14px; }
 .eb-from dt { color: var(--muted); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; padding-top: 2px; }
 .eb-from dd { margin: 0; overflow-wrap: anywhere; }
+
+/* full notification text shown inside the app */
+.eb-post { margin: 10px 0; padding: 14px 16px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--border); }
+.eb-post.reply { margin-left: 18px; border-left: 3px solid var(--accent); }
+.eb-post-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.eb-when { font-size: 12px; margin-left: auto; }
+.eb-text { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.6; }
+.eb-links { margin: 10px 0 0; padding-left: 18px; }
+.eb-links a { overflow-wrap: anywhere; }
+.eb-files { margin-top: 10px; font-size: 13px; overflow-wrap: anywhere; }
+.eb-dates { display: grid; gap: 2px; margin-bottom: 10px; font-weight: 500; }
+.eb-status { width: 100%; margin-top: 12px; border-collapse: collapse; }
+.eb-status th, .eb-status td { text-align: left; padding: 6px 0; border-top: 1px solid var(--border); vertical-align: top; }
+.eb-status th { width: 38%; color: var(--muted); font-weight: 500; padding-right: 12px; }
+.eb-orig { display: inline-block; margin-top: 6px; }

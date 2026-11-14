@@ -9,7 +9,6 @@
 </nav>
 <div class="actions">
   <a class="btn" href="{{ url_for('ebwise') }}">Back</a>
-  <a class="btn btn-primary" href="{{ course.url }}" target="_blank" rel="noopener">{{ icon("external") }} Open in eBwise</a>
 </div>
 {% endblock %}
 
@@ -38,9 +37,39 @@
     <dl class="eb-from">
       <dt>From</dt><dd>{{ i.from }}</dd>
       <dt>Where</dt><dd>{{ i.source }} &middot; {{ course.code }} {{ course.name }}</dd>
-      {% if i.detail %}<dt>Details</dt><dd>{{ i.detail }}</dd>{% endif %}
     </dl>
-    <a class="btn" href="{{ i.url }}" target="_blank" rel="noopener">{{ icon("external") }} Open it on eBwise</a>
+
+    {% if i.posts %}
+    {% for p in i.posts %}
+    <section class="eb-post{{ ' reply' if p.reply }}">
+      <div class="eb-post-head">
+        <strong>{{ p.author }}</strong>{% if p.reply %} <span class="muted">replied</span>{% endif %}
+        {% if p.when %}<span class="muted eb-when">{{ p.when }}</span>{% endif %}
+      </div>
+      {% if p.body %}<div class="eb-text">{{ p.body }}</div>{% endif %}
+      {% if p.links %}<ul class="eb-links">{% for l in p.links %}<li><a href="{{ l.href }}" target="_blank" rel="noopener noreferrer">{{ l.text }}</a></li>{% endfor %}</ul>{% endif %}
+      {% if p.files %}<div class="eb-files"><span class="muted">Attached:</span> {{ p.files | join(", ") }}</div>{% endif %}
+      {% if p.images %}<div class="muted small">This post also has {{ p.images }} picture{{ "s" if p.images != 1 }} that only show on eBwise.</div>{% endif %}
+    </section>
+    {% endfor %}
+    {% elif i.page %}
+    <section class="eb-post">
+      {% if i.page.dates %}<div class="eb-dates">{% for d in i.page.dates %}<div>{{ d }}</div>{% endfor %}</div>{% endif %}
+      {% if i.page.body %}<div class="eb-text">{{ i.page.body }}</div>{% endif %}
+      {% if i.page.links %}<ul class="eb-links">{% for l in i.page.links %}<li><a href="{{ l.href }}" target="_blank" rel="noopener noreferrer">{{ l.text }}</a></li>{% endfor %}</ul>{% endif %}
+      {% if i.page.files %}<div class="eb-files"><span class="muted">Files for this task:</span> {{ i.page.files | join(", ") }}</div>{% endif %}
+      {% set rows = i.page.status | rejectattr(0, "equalto", "Time remaining") | list %}
+      {% if rows %}
+      <table class="eb-status">
+        {% for k, v in rows %}<tr><th>{{ k }}</th><td>{{ v }}</td></tr>{% endfor %}
+      </table>
+      {% endif %}
+    </section>
+    {% elif i.detail %}
+    <p class="eb-text">{{ i.detail }}</p>
+    {% endif %}
+
+    <a class="eb-orig muted small" href="{{ i.url }}" target="_blank" rel="noopener noreferrer">Original on eBwise</a>
   </article>
   {% endfor %}
 </div>
