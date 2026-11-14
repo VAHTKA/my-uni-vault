@@ -98,6 +98,7 @@ DATA_DIR = ".vault"
 SETTINGS_PATH = f"{DATA_DIR}/settings.json"
 TIMETABLE_PATH = f"{DATA_DIR}/timetable.json"
 PERSONAL_PATH = f"{DATA_DIR}/personal.json"
+PORTAL_PATH = f"{DATA_DIR}/portal.json"  # results and fees copied from the university portal
 PROFILE_PATH = f"{DATA_DIR}/profile.json"
 REMINDERS_PATH = f"{DATA_DIR}/reminders.json"
 USER_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
@@ -1463,6 +1464,43 @@ def timetable_delete():
     except Exception as e:
         flash(f"Could not remove entry: {e}", "error")
     return redirect(url_for("timetable", week=request.form.get("week", ""), tt=kind or None))
+
+
+def personal_required(view):
+    """Pages only the PERSONAL_EMAILS accounts can open; everyone else gets a 404."""
+    @functools.wraps(view)
+    def wrapped(*args, **kwargs):
+        if not current_user():
+            return redirect(url_for("login"))
+        if not can_personal():
+            abort(404)
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def load_portal():
+    try:
+        return load_json(full(PORTAL_PATH), None)
+    except Exception as e:
+        flash(f"Could not load your records: {e}", "error")
+        return None
+
+
+@app.template_filter("money")
+def money(value):
+    return f"{float(value or 0):,.2f}"
+
+
+@app.route("/exams")
+@personal_required
+def exams():
+    return render_template("exams.html", portal=load_portal())
+
+
+@app.route("/fees")
+@personal_required
+def fees():
+    return render_template("fees.html", portal=load_portal())
 
 
 @app.route("/reminders")

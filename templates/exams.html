@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Exams{% endblock %}
+
+{% block topbar %}
+<div>
+  <h1>Exams</h1>
+  <div class="muted">Results and grade point average</div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if not portal or not portal.results %}
+<div class="empty-state">
+  {{ icon("award") }}
+  <h2>No results saved yet</h2>
+  <p>Your results appear here once they are added.</p>
+</div>
+{% else %}
+{% set latest = portal.results.terms[0] %}
+<section class="grade-cards">
+  <div class="grade-card">
+    <span class="grade-label">GPA</span>
+    <span class="grade-value">{{ "%.2f"|format(latest.gpa) }}</span>
+    <span class="muted">{{ latest.term }}</span>
+  </div>
+  <div class="grade-card">
+    <span class="grade-label">CGPA</span>
+    <span class="grade-value">{{ "%.2f"|format(latest.cgpa) }}</span>
+    <span class="muted">Cumulative</span>
+  </div>
+  <div class="grade-card">
+    <span class="grade-label">Academic status</span>
+    <span class="grade-value small">{{ latest.status }}</span>
+    <span class="muted">{{ latest.hours }} credit hours, {{ "%.3f"|format(latest.points) }} points</span>
+  </div>
+</section>
+
+{% for t in portal.results.terms %}
+<div class="section-title">{{ t.term }}</div>
+<div class="card">
+  <table class="table">
+    <thead><tr><th>Code</th><th>Course</th><th>Grade</th><th>Result</th></tr></thead>
+    <tbody>
+      {% for c in t.courses %}
+      <tr>
+        <td class="num">{{ c.code }}</td>
+        <td>{{ c.title }}</td>
+        <td><strong>{{ c.grade }}</strong></td>
+        <td><span class="badge">{{ c.status }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+
+<p class="muted small portal-note">Copied from the university portal (CLiC) on {{ portal.synced | nice_date }}. This is not an official document.</p>
+{% endif %}
+{% endblock %}

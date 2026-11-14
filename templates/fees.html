@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Tuition fees{% endblock %}
+
+{% block topbar %}
+<div>
+  <h1>Tuition fees</h1>
+  <div class="muted">What you owe the university</div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if not portal or not portal.fees %}
+<div class="empty-state">
+  {{ icon("wallet") }}
+  <h2>No fee details saved yet</h2>
+  <p>Your balance appears here once it is added.</p>
+</div>
+{% else %}
+{% set f = portal.fees %}
+<section class="grade-cards">
+  <div class="grade-card owe">
+    <span class="grade-label">You owe</span>
+    <span class="grade-value"><small>{{ f.currency }}</small> {{ f.owe | money }}</span>
+    <span class="muted">Total balance right now</span>
+  </div>
+  <div class="grade-card">
+    <span class="grade-label">Due now</span>
+    <span class="grade-value">{{ f.due_now | money }}</span>
+    <span class="muted">Nothing overdue</span>
+  </div>
+  <div class="grade-card">
+    <span class="grade-label">Future due</span>
+    <span class="grade-value">{{ f.future_due | money }}</span>
+    <span class="muted">Pay by {{ f.invoice.due | nice_date }}</span>
+  </div>
+</section>
+
+<div class="section-title">{{ f.invoice.term }} invoice</div>
+<div class="card">
+  <table class="table">
+    <thead><tr><th>Item</th><th class="hide-sm">Subject</th><th class="num-h">Amount ({{ f.currency }})</th></tr></thead>
+    <tbody>
+      {% for i in f.invoice["items"] %}
+      <tr>
+        <td>{{ i.name }}</td>
+        <td class="hide-sm muted">{{ i.subject }}</td>
+        <td class="num">{{ i.amount | money }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="sum-row"><td><strong>Charges</strong></td><td class="hide-sm"></td><td class="num"><strong>{{ f.invoice.charges | money }}</strong></td></tr>
+      <tr><td>{{ f.invoice.rebate_name }}</td><td class="hide-sm"></td><td class="num">- {{ f.invoice.rebate | money }}</td></tr>
+      <tr class="sum-row"><td><strong>Balance</strong></td><td class="hide-sm"></td><td class="num"><strong>{{ f.owe | money }}</strong></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<p class="muted small portal-note">Copied from the university portal (CLiC) on {{ portal.synced | nice_date }}. Invoice {{ f.invoice.number }}. Check CLiC before paying: it is the official record.</p>
+{% endif %}
+{% endblock %}
