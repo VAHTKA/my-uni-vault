@@ -3,19 +3,20 @@
 
 {% block topbar %}
 <nav class="crumbs" aria-label="Breadcrumb">
-  <a href="{{ url_for('timetable', week=week) }}">Timetable</a>
+  <a href="{{ url_for('timetable', week=week, tt=tt or None) }}">{{ "Personal timetable" if tt else "Timetable" }}</a>
   {{ icon("chevron", "icon sep") }}
   <span class="current">Edit entry</span>
 </nav>
 <div class="actions">
-  <a class="btn" href="{{ url_for('timetable', week=week) }}">Cancel</a>
+  <a class="btn" href="{{ url_for('timetable', week=week, tt=tt or None) }}">Cancel</a>
 </div>
 {% endblock %}
 
 {% block content %}
 <div class="settings">
-  <form method="POST" action="{{ url_for('timetable_edit', entry_id=entry.id) }}" class="card">
+  <form method="POST" action="{{ url_for('timetable_edit', entry_id=entry.id, tt=tt or None) }}" class="card">
     <input type="hidden" name="week" value="{{ week }}">
+    {% if tt %}<input type="hidden" name="tt" value="{{ tt }}">{% endif %}
     <h2>{{ entry.title }}</h2>
     <p class="desc">
       {% if entry.repeat == "weekly" %}This entry repeats every week. Changes apply to every week.
@@ -93,6 +94,7 @@
       <input type="hidden" name="id" value="{{ entry.id }}">
       <input type="hidden" name="scope" value="all">
       <input type="hidden" name="week" value="{{ week }}">
+      {% if tt %}<input type="hidden" name="tt" value="{{ tt }}">{% endif %}
       <button type="submit" class="btn btn-danger">{{ icon("trash") }} {{ "Delete from every week" if entry.repeat == "weekly" else "Delete entry" }}</button>
     </form>
   </section>

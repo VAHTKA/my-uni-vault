@@ -996,7 +996,7 @@ img.avatar { object-fit: cover; background: var(--surface-2); }
   display: grid;
   grid-template-columns: 84px repeat(var(--cols), minmax(0, 1fr));
   gap: 6px;
-  min-width: calc(84px + var(--cols) * 150px);
+  min-width: calc(84px + var(--cols) * var(--col-min, 150px));
   width: 100%;
   background: var(--surface);
   padding: 8px;
@@ -1443,3 +1443,12 @@ textarea.input { border-radius: 18px; }
   .content:has(.welcome) > .subj-grid { order: 1; }
   .content:has(.welcome) > .welcome .today-card { order: 2; margin-bottom: 12px; }
 }
+
+/* timetable chooser: University | Personal */
+.tt-switch { display: inline-flex; gap: 6px; padding: 5px; margin: 0 0 16px; border: 1px solid var(--border); border-radius: 999px; background: var(--glass); }
+.tt-switch a { display: inline-flex; align-items: center; gap: 8px; padding: 8px 20px; border-radius: 999px; color: var(--muted); font-weight: 500; text-decoration: none; }
+.tt-switch a .icon { width: 16px; height: 16px; }
+.tt-switch a.on { background: var(--accent-grad); color: #fff; }
+.tt-switch a:hover { text-decoration: none; color: var(--text); }
+.tt-switch a.on:hover { color: #fff; }
+@media (max-width: 700px) { .tt-switch { display: flex; } .tt-switch a { flex: 1; justify-content: center; } }

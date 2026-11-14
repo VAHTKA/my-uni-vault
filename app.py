@@ -59,6 +59,8 @@ USER_QUOTA_BYTES = int(float(os.environ.get("USER_QUOTA_MB", "100")) * 1024 * 10
 TOTAL_STORAGE_BYTES = int(float(os.environ.get("TOTAL_STORAGE_MB", "950")) * 1024 * 1024)
 OWNER_EMAIL = os.environ.get("OWNER_EMAIL", "").strip().lower()
 ADMIN_EMAILS = {e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", OWNER_EMAIL).split(",") if e.strip()}
+# Accounts that also get the private "Personal" timetable next to the university one.
+PERSONAL_EMAILS = {e.strip().lower() for e in os.environ.get("PERSONAL_EMAILS", "").split(",") if e.strip()}
 
 app = Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
@@ -95,6 +97,7 @@ USERS_DIR = "users"
 DATA_DIR = ".vault"
 SETTINGS_PATH = f"{DATA_DIR}/settings.json"
 TIMETABLE_PATH = f"{DATA_DIR}/timetable.json"
+PERSONAL_PATH = f"{DATA_DIR}/personal.json"
 PROFILE_PATH = f"{DATA_DIR}/profile.json"
 REMINDERS_PATH = f"{DATA_DIR}/reminders.json"
 USER_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
@@ -593,14 +596,98 @@ def breadcrumbs(path):
 
 # ---------- timetable helpers ----------
 
-def load_timetable():
-    """The user's timetable entries; an empty list if none saved yet."""
+def can_personal():
+    user = current_user()
+    return bool(user) and user["email"].lower() in PERSONAL_EMAILS
+
+
+def tt_kind():
+    """Which timetable a request is about: "" (university) or "personal" (only for PERSONAL_EMAILS)."""
+    if request.values.get("tt") != "personal":
+        return ""
+    if not can_personal():
+        abort(404)
+    return "personal"
+
+
+def _routine(days, start, end, title, kind="class", note=""):
+    return [{"days": days, "start": start, "end": end, "title": title, "type": kind, "note": note}]
+
+
+def default_personal_entries():
+    """The starting personal week: routine, fitness, coding and study blocks.
+
+    Lectures are not written here: the personal view shows "Uni" at every class
+    time of the university timetable automatically, so the two stay separate.
+    """
+    ALL, WK, WE = range(7), range(5), (5, 6)
+    r = []
+    r += _routine(ALL, "06:00", "06:30", "Quran", note="Wake up at 6:00 AM")
+    r += _routine(ALL, "06:30", "07:15", "Book reading", note="Personal book")
+    r += _routine(ALL, "19:00", "19:30", "Get ready for gym")
+    r += _routine(ALL, "19:30", "21:00", "Gym", note="Gym only. 16:8 fast starts at 8 PM")
+    r += _routine(ALL, "23:00", "", "Sleep", note="Lights out")
+    # meals: eating window 12 PM - 8 PM, second meal before gym
+    r += _routine((0, 1, 3, 4), "12:00", "12:30", "Meal 1", note="Breaks the fast (8 PM to 12 PM)")
+    r += _routine((2,), "13:00", "13:30", "Meal 1", note="Between your classes. Breaks the fast")
+    r += _routine(WE, "12:15", "12:45", "Meal 1", note="Breaks the fast")
+    r += _routine((0, 1, 4) + WE, "18:00", "18:30", "Meal 2", note="Before gym")
+    r += _routine((2, 3), "18:30", "19:00", "Meal 2", note="After class, before gym")
+    # weekdays
+    r += _routine((0, 1), "07:15", "09:00", "Uni study", "study", "Revision and lecture preparation")
+    r += _routine((0, 1), "09:00", "09:45", "Get ready & travel")
+    r += _routine((2,), "07:15", "10:30", "Uni study", "study", "Revision and lecture preparation")
+    r += _routine((2,), "10:45", "11:45", "Get ready & travel")
+    r += _routine((3,), "07:15", "08:00", "Get ready & travel")
+    r += _routine((3,), "10:30", "12:00", "Uni study", "study", "Revision and coursework")
+    r += _routine((4,), "07:30", "12:00", "Uni catch-up", "study", "Assignments, revision, concepts")
+    r += _routine((4,), "14:00", "16:00", "Uni study", "study", "Assignments and revision")
+    r += _routine((0, 1, 4) + WE, "16:30", "17:00", "Light exercise", note="Stretching or a short walk")
+    r += _routine((0, 1, 4), "17:00", "18:00", "Uni study", "study", "Revision before dinner")
+    r += _routine(WK, "21:15", "22:45", "Vibe coding", "study", "Build projects, learn new tech, try AI tools")
+    r += _routine(WK, "22:45", "23:00", "Wind down", note="Shower and prepare for tomorrow")
+    # weekend
+    r += _routine(WE, "07:15", "07:30", "Prepare for walk")
+    r += _routine(WE, "07:30", "09:00", "Morning walk", note="Outdoors")
+    r += _routine(WE, "09:00", "09:15", "Freshen up")
+    r += _routine(WE, "09:15", "12:15", "Vibe coding", "study", "3 protected hours: build, debug, learn frameworks")
+    r += _routine(WE, "14:00", "16:00", "Uni work", "study", "Assignments, revision, lecture preparation")
+    r += _routine(WE, "21:15", "22:45", "Relax", note="Shower and prepare for the next day")
+    monday = date(2026, 11, 2)
+    out = []
+    for item in r:
+        for d in item["days"]:
+            out.append({"id": uuid.uuid4().hex, "date": (monday + timedelta(days=d)).isoformat(),
+                        "start": item["start"], "end": item["end"], "title": item["title"],
+                        "type": item["type"], "note": item["note"], "repeat": "weekly", "until": "", "skip": []})
+    return out
+
+
+def load_timetable(kind=""):
+    """The user's timetable entries; empty if none saved yet (the personal one starts filled in)."""
+    if kind == "personal":
+        data = load_json(full(PERSONAL_PATH), None)
+        if data is None:
+            entries = default_personal_entries()
+            save_json(full(PERSONAL_PATH), {"entries": entries})
+            return entries
+        return data.get("entries", [])
     return load_json(full(TIMETABLE_PATH), {"entries": []}).get("entries", [])
 
 
-def save_timetable(entries):
+def save_timetable(entries, kind=""):
     entries.sort(key=lambda e: (e["date"], e["start"] or "99:99", e["title"].lower()))
-    save_json(full(TIMETABLE_PATH), {"entries": entries})
+    save_json(full(PERSONAL_PATH if kind == "personal" else TIMETABLE_PATH), {"entries": entries})
+
+
+def personal_color(title):
+    """Colour index (0-7) for a personal block, by what it is."""
+    t = title.lower()
+    for word, idx in (("quran", 0), ("book", 2), ("gym", 4), ("vibe", 1), ("uni", 3), ("meal", 6),
+                      ("walk", 7), ("exercise", 7)):
+        if word in t:
+            return idx
+    return 5
 
 
 def load_reminders():
@@ -789,7 +876,7 @@ def prefetch_page_data():
 @app.context_processor
 def inject_globals():
     prefetch_page_data()
-    ctx = {"settings": load_settings(), "user": current_user(), "is_admin": is_admin(),
+    ctx = {"settings": load_settings(), "user": current_user(), "is_admin": is_admin(), "can_personal": can_personal(),
            "milesian_faces": MILESIAN_FACES}
     if current_user() and request.endpoint not in ("login", "privacy", "static"):
         try:
@@ -1216,13 +1303,20 @@ def load_subjects():
 @app.route("/timetable")
 @login_required
 def timetable():
+    kind = tt_kind()
     today = today_local()
     start = week_start(parse_date(request.args.get("week")) or today)
     try:
-        entries = load_timetable()
+        entries = load_timetable(kind)
     except Exception as e:
         flash(f"Could not load timetable: {e}", "error")
         entries = []
+    uni_classes = []
+    if kind:  # the personal view only marks class times as "Uni"; no university details are copied
+        try:
+            uni_classes = [e for e in load_timetable() if e["type"] == "class"]
+        except Exception:
+            pass
 
     days = []
     for i in range(7):
@@ -1234,7 +1328,12 @@ def timetable():
             "short": d.strftime("%a"),
             "label": d.strftime("%d %b"),
             "is_today": d == today,
-            "entries": entries_on(entries, d),
+            "entries": sorted(
+                entries_on(entries, d) + [
+                    {"id": "uni", "title": "Uni", "start": c["start"], "end": c["end"], "type": "class", "note": "",
+                     "repeat": "", "on": d.isoformat(), "uni": True}
+                    for c in entries_on(uni_classes, d)],
+                key=lambda e: (e["start"] or "99:99", e["title"].lower())),
         })
 
     end = start + timedelta(days=6)
@@ -1249,9 +1348,11 @@ def timetable():
     shown = [d for i, d in enumerate(days) if i < 5 or d["entries"]]
     for d in shown:
         for e in d["entries"]:
-            e["color"] = subject_color(e["title"])
+            e["color"] = (5 if e.get("uni") else personal_color(e["title"])) if kind else subject_color(e["title"])
     hours = [int(e["start"][:2]) for d in shown for e in d["entries"] if e["start"]]
     lo, hi = min([8] + hours), max([17] + hours)
+    if kind:
+        hi = max(hi, 23)
     rows = []
     if any(not e["start"] for d in shown for e in d["entries"]):
         rows.append({"label": "Anytime", "cells": [[e for e in d["entries"] if not e["start"]] for d in shown]})
@@ -1270,7 +1371,7 @@ def timetable():
 
     this_week = week_start(today)
     return render_template(
-        "timetable.html", days=days, reminder_groups=reminder_groups(reminders, today), today=today.isoformat(), shown=shown, rows=rows, week_label=week_label, entry_types=ENTRY_TYPES,
+        "timetable.html", tt=kind, days=days, reminder_groups=reminder_groups(reminders, today), today=today.isoformat(), shown=shown, rows=rows, week_label=week_label, entry_types=ENTRY_TYPES,
         week=start.isoformat(),
         prev_week=(start - timedelta(days=7)).isoformat(),
         next_week=(start + timedelta(days=7)).isoformat(),
@@ -1283,15 +1384,16 @@ def timetable():
 @app.route("/timetable/add", methods=["POST"])
 @login_required
 def timetable_add():
+    kind = tt_kind()
     fields, error = entry_from_form(request.form)
     back = request.form.get("week") or request.form.get("date", "")
     if error:
         flash(error, "error")
-        return redirect(url_for("timetable", week=back))
+        return redirect(url_for("timetable", week=back, tt=kind or None))
     try:
-        entries = load_timetable()
+        entries = load_timetable(kind)
         entries.append({"id": uuid.uuid4().hex, **fields, "skip": []})
-        save_timetable(entries)
+        save_timetable(entries, kind)
         first = date.fromisoformat(fields["date"])
         if fields["repeat"]:
             msg = f"Added \"{fields['title']}\" every {first:%A}"
@@ -1301,22 +1403,23 @@ def timetable_add():
         flash(msg, "success")
     except Exception as e:
         flash(f"Could not save entry: {e}", "error")
-    return redirect(url_for("timetable", week=back))
+    return redirect(url_for("timetable", week=back, tt=kind or None))
 
 
 @app.route("/timetable/edit/<entry_id>", methods=["GET", "POST"])
 @login_required
 def timetable_edit(entry_id):
+    kind = tt_kind()
     week = request.values.get("week", "")
     try:
-        entries = load_timetable()
+        entries = load_timetable(kind)
     except Exception as e:
         flash(f"Could not load timetable: {e}", "error")
-        return redirect(url_for("timetable", week=week))
+        return redirect(url_for("timetable", week=week, tt=kind or None))
     entry = next((e for e in entries if e["id"] == entry_id), None)
     if entry is None:
         flash("That entry no longer exists.", "error")
-        return redirect(url_for("timetable", week=week))
+        return redirect(url_for("timetable", week=week, tt=kind or None))
 
     if request.method == "POST":
         fields, error = entry_from_form(request.form)
@@ -1324,28 +1427,29 @@ def timetable_edit(entry_id):
             flash(error, "error")
             # Re-show what was typed so nothing is lost.
             typed = {**entry, **request.form.to_dict(), "repeat": request.form.get("repeat", "")}
-            return render_template("timetable_edit.html", entry=typed, entry_types=ENTRY_TYPES, week=week)
+            return render_template("timetable_edit.html", entry=typed, entry_types=ENTRY_TYPES, week=week, tt=kind)
         entry.update(fields)
         if not entry["repeat"]:
             entry["skip"] = []
         try:
-            save_timetable(entries)
+            save_timetable(entries, kind)
             flash(f"Saved \"{entry['title']}\".", "success")
         except Exception as e:
             flash(f"Could not save entry: {e}", "error")
-        return redirect(url_for("timetable", week=week or entry["date"]))
+        return redirect(url_for("timetable", week=week or entry["date"], tt=kind or None))
 
-    return render_template("timetable_edit.html", entry=entry, entry_types=ENTRY_TYPES, week=week)
+    return render_template("timetable_edit.html", entry=entry, entry_types=ENTRY_TYPES, week=week, tt=kind)
 
 
 @app.route("/timetable/delete", methods=["POST"])
 @login_required
 def timetable_delete():
+    kind = tt_kind()
     entry_id = request.form.get("id", "")
     on = request.form.get("on", "")
     only_this = request.form.get("scope") == "one"
     try:
-        entries = load_timetable()
+        entries = load_timetable(kind)
         entry = next((e for e in entries if e["id"] == entry_id), None)
         if entry is not None:
             if only_this and entry.get("repeat") == "weekly" and parse_date(on):
@@ -1355,10 +1459,10 @@ def timetable_delete():
                 entries.remove(entry)
                 flash(f"Removed \"{entry['title']}\""
                       + (" from every week." if entry.get("repeat") == "weekly" else "."), "success")
-            save_timetable(entries)
+            save_timetable(entries, kind)
     except Exception as e:
         flash(f"Could not remove entry: {e}", "error")
-    return redirect(url_for("timetable", week=request.form.get("week", "")))
+    return redirect(url_for("timetable", week=request.form.get("week", ""), tt=kind or None))
 
 
 @app.route("/reminders")

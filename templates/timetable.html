@@ -3,8 +3,8 @@
 
 {% macro card(e, show_time=False) %}
 <div class="tt-entry c{{ e.color }}{{ ' tt-flag' if e.type in ('assignment', 'exam') }}">
-          <div class="tt-tools">
-            <a class="icon-btn small" href="{{ url_for('timetable_edit', entry_id=e.id, week=week) }}"
+          {% if not e.uni %}<div class="tt-tools">
+            <a class="icon-btn small" href="{{ url_for('timetable_edit', entry_id=e.id, week=week, tt=tt or None) }}"
                title="Edit" aria-label="Edit {{ e.title }}">{{ icon("pencil") }}</a>
             <form method="POST" action="{{ url_for('timetable_delete') }}"
                   data-msg="{% if e.repeat == 'weekly' %}Remove &quot;{{ e.title }}&quot; on {{ e.on }} only? (To remove it from every week, use Edit.){% else %}Remove &quot;{{ e.title }}&quot;?{% endif %}"
@@ -15,9 +15,10 @@
               <input type="hidden" name="scope" value="one">
               {% endif %}
               <input type="hidden" name="week" value="{{ week }}">
+              {% if tt %}<input type="hidden" name="tt" value="{{ tt }}">{% endif %}
               <button type="submit" class="icon-btn small danger" title="Remove" aria-label="Remove {{ e.title }}">{{ icon("x") }}</button>
             </form>
-          </div>
+          </div>{% endif %}
           {% if show_time and e.start %}<div class="tt-when">{{ e.start | time12 }}{% if e.end %} – {{ e.end | time12 }}{% endif %}</div>{% endif %}
           <div class="tt-title">{{ e.title }}</div>
           {% if e.note %}<div class="tt-note">{{ e.note | replace("Room: ", "") }}</div>{% endif %}
@@ -27,7 +28,7 @@
 
 {% block topbar %}
 <div>
-  <h1>Timetable</h1>
+  <h1>{{ "Personal timetable" if tt else "Timetable" }}</h1>
   <div class="muted">
     {{ week_label }}
     {% if is_this_week %}<span class="badge">This week</span>{% elif is_next_week %}<span class="badge">Next week</span>{% endif %}
@@ -35,13 +36,19 @@
 </div>
 
 <div class="actions">
-  <a class="btn" href="{{ url_for('timetable', week=prev_week) }}" aria-label="Previous week">{{ icon("chevron-left") }}</a>
-  <a class="btn" href="{{ url_for('timetable', week=this_week) }}">This week</a>
-  <a class="btn" href="{{ url_for('timetable', week=next_week) }}" aria-label="Next week">{{ icon("chevron") }}</a>
+  <a class="btn" href="{{ url_for('timetable', week=prev_week, tt=tt or None) }}" aria-label="Previous week">{{ icon("chevron-left") }}</a>
+  <a class="btn" href="{{ url_for('timetable', week=this_week, tt=tt or None) }}">This week</a>
+  <a class="btn" href="{{ url_for('timetable', week=next_week, tt=tt or None) }}" aria-label="Next week">{{ icon("chevron") }}</a>
 </div>
 {% endblock %}
 
 {% block content %}
+{% if can_personal %}
+<nav class="tt-switch" aria-label="Choose a timetable">
+  <a href="{{ url_for('timetable', week=week) }}" class="{{ 'on' if not tt }}">{{ icon("cap") }} University</a>
+  <a href="{{ url_for('timetable', week=week, tt='personal') }}" class="{{ 'on' if tt }}">{{ icon("home") }} Personal</a>
+</nav>
+{% endif %}
 {% if not total %}
 <p class="week-hint muted">Nothing planned for this week yet. Use <strong>+ Add</strong> on any day to write in classes, assignments, exams or plans.</p>
 {% endif %}
@@ -49,10 +56,10 @@
 <div class="tt-card">
   <div class="tt-head">
     <span class="tt-head-icon">{{ icon("clock") }}</span>
-    <h2>Weekly Timetable</h2>
+    <h2>{{ "Personal Weekly Timetable" if tt else "Weekly Timetable" }}</h2>
   </div>
   <div class="tt-scroll">
-    <div class="tt-grid" style="--cols: {{ shown | length }}">
+    <div class="tt-grid" style="--cols: {{ shown | length }}{{ '; --col-min: 128px' if shown | length > 5 }}">
       <div class="tt-corner">Time</div>
       {% for day in shown %}
       <div class="tt-day{{ ' is-today' if day.is_today }}" id="d-{{ day.date }}">
@@ -90,6 +97,7 @@
   <summary>{{ icon("plus") }} Add to timetable</summary>
   <form method="POST" action="{{ url_for('timetable_add') }}">
     <input type="hidden" name="week" value="{{ week }}">
+    {% if tt %}<input type="hidden" name="tt" value="{{ tt }}">{% endif %}
     <input class="input" name="title" placeholder="e.g. Data Structures lecture" maxlength="100" required>
     <div class="time-row">
       <select class="input" name="date" aria-label="Day">
