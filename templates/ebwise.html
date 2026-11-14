@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}eBwise notifications{% endblock %}
+
+{% block topbar %}
+<div>
+  <h1>eBwise notifications</h1>
+  <div class="muted">{% if total %}{{ total }} new{% else %}Nothing new{% endif %} across your subjects</div>
+</div>
+{% endblock %}
+
+{% block content %}
+{% if not data %}
+<div class="empty-state">
+  {{ icon("megaphone") }}
+  <h2>No eBwise data yet</h2>
+  <p>Your notifications appear here once they are copied from eBwise.</p>
+</div>
+{% else %}
+<div class="subj-grid eb-grid">
+  {% for c in courses %}
+  <a class="subj c{{ c.color }}" href="{{ url_for('ebwise_course', code=c.code) }}">
+    {% if c.new %}<b class="notif-badge corner" title="{{ c.new }} new">{{ c.new }}</b>{% endif %}
+    {{ icon("folder") }}
+    <span class="subj-text">
+      <span class="subj-code">{{ c.code }}</span>
+      <span class="subj-name">{{ c.name }}</span>
+      <span class="eb-latest">
+        {% if c.latest %}{{ "New: " if c.new }}{{ c.latest.title }}{% else %}No notifications{% endif %}
+      </span>
+    </span>
+  </a>
+  {% endfor %}
+  {% if general %}
+  <a class="subj c5" href="{{ url_for('ebwise_general') }}">
+    {% if general_new %}<b class="notif-badge corner">{{ general_new }}</b>{% endif %}
+    {{ icon("megaphone") }}
+    <span class="subj-text"><span class="subj-code">eBwise</span><span class="subj-name">General notifications</span></span>
+  </a>
+  {% endif %}
+</div>
+<p class="muted small portal-note">Taken from eBwise{% if data.checked %}, last checked {{ data.checked | local_dt }}{% endif %}. Only items meant for your own sections are shown, from the last 3 weeks. Tap a subject to see where each one comes from.</p>
+{% endif %}
+{% endblock %}

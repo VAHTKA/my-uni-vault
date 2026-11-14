@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ course.code }} notifications{% endblock %}
+
+{% block topbar %}
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="{{ url_for('ebwise') }}">eBwise</a>
+  {{ icon("chevron", "icon sep") }}
+  <span class="current">{{ course.code }}</span>
+</nav>
+<div class="actions">
+  <a class="btn" href="{{ url_for('ebwise') }}">Back</a>
+  <a class="btn btn-primary" href="{{ course.url }}" target="_blank" rel="noopener">{{ icon("external") }} Open in eBwise</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="subj-banner subj c{{ course.color }}">
+  {{ icon("folder") }}
+  <span class="subj-text"><span class="subj-code">{{ course.code }}</span><span class="subj-name">{{ course.name }}{% if course.groups %} &middot; {{ course.groups | join(", ") }}{% endif %}</span></span>
+</div>
+
+{% if not items %}
+<div class="empty-state">
+  {{ icon("megaphone") }}
+  <h2>No notifications for this subject</h2>
+  <p>Nothing recent that is meant for you.</p>
+</div>
+{% else %}
+<div class="eb-list">
+  {% for i in items %}
+  <article class="eb-item card">
+    <div class="eb-top">
+      <span class="eb-type eb-{{ i.type }}">{{ {"announcement": "Announcement", "assignment": "Assignment", "quiz": "Quiz", "message": "Message", "notification": "Notification"}.get(i.type, "Update") }}</span>
+      {% if i.is_new %}<span class="eb-new">New</span>{% endif %}
+      <span class="muted eb-date">{{ i.date | nice_date }}</span>
+    </div>
+    <h3>{{ i.title }}</h3>
+    <dl class="eb-from">
+      <dt>From</dt><dd>{{ i.from }}</dd>
+      <dt>Where</dt><dd>{{ i.source }} &middot; {{ course.code }} {{ course.name }}</dd>
+      {% if i.detail %}<dt>Details</dt><dd>{{ i.detail }}</dd>{% endif %}
+    </dl>
+    <a class="btn" href="{{ i.url }}" target="_blank" rel="noopener">{{ icon("external") }} Open it on eBwise</a>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

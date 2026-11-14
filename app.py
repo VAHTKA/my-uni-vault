@@ -98,6 +98,8 @@ DATA_DIR = ".vault"
 SETTINGS_PATH = f"{DATA_DIR}/settings.json"
 TIMETABLE_PATH = f"{DATA_DIR}/timetable.json"
 PERSONAL_PATH = f"{DATA_DIR}/personal.json"
+EBWISE_PATH = f"{DATA_DIR}/ebwise.json"          # notifications copied from eBwise
+EBWISE_SEEN_PATH = f"{DATA_DIR}/ebwise_seen.json"  # which of them were opened already
 PORTAL_PATH = f"{DATA_DIR}/portal.json"  # results and fees copied from the university portal
 PROFILE_PATH = f"{DATA_DIR}/profile.json"
 REMINDERS_PATH = f"{DATA_DIR}/reminders.json"
@@ -877,7 +879,7 @@ def prefetch_page_data():
 @app.context_processor
 def inject_globals():
     prefetch_page_data()
-    ctx = {"settings": load_settings(), "user": current_user(), "is_admin": is_admin(), "can_personal": can_personal(),
+    ctx = {"settings": load_settings(), "user": current_user(), "is_admin": is_admin(), "can_personal": can_personal(), "ebwise_unseen": 0,
            "milesian_faces": MILESIAN_FACES}
     if current_user() and request.endpoint not in ("login", "privacy", "static"):
         try:
@@ -885,6 +887,11 @@ def inject_globals():
         except Exception:
             ctx["sidebar_folders"] = []
         ctx["sidebar_subjects"] = load_subjects()
+        if can_personal():
+            try:
+                ctx["ebwise_unseen"] = ebwise_counts(*ebwise_state())[2]
+            except Exception:
+                pass
     return ctx
 
 
@@ -1486,6 +1493,20 @@ def load_portal():
         return None
 
 
+def ebwise_state():
+    """(eBwise data or None, set of notification ids already opened)."""
+    data = load_json(full(EBWISE_PATH), None)
+    seen = set((load_json(full(EBWISE_SEEN_PATH), {}) or {}).get("seen", []))
+    return data, seen
+
+
+def ebwise_counts(data, seen):
+    """Unopened notifications per subject code, and in total (general ones included)."""
+    counts = {c["code"]: sum(1 for i in c["items"] if i["id"] not in seen) for c in (data or {}).get("courses", [])}
+    general = sum(1 for i in (data or {}).get("general", []) if i["id"] not in seen)
+    return counts, general, sum(counts.values()) + general
+
+
 @app.template_filter("money")
 def money(value):
     return f"{float(value or 0):,.2f}"
@@ -1494,6 +1515,51 @@ def money(value):
 @app.template_filter("local_dt")
 def local_dt(value):
     return local_time(value, load_settings()["utc_offset"])
+
+
+@app.route("/ebwise")
+@personal_required
+def ebwise():
+    try:
+        data, seen = ebwise_state()
+    except Exception as e:
+        flash(f"Could not load eBwise notifications: {e}", "error")
+        data, seen = None, set()
+    counts, general, total = ebwise_counts(data, seen)
+    courses = []
+    for c in (data or {}).get("courses", []):
+        new = [i for i in c["items"] if i["id"] not in seen]
+        courses.append(dict(c, new=len(new), latest=(new or c["items"] or [None])[0], color=subject_color(c["code"])))
+    # subjects with something new first, then the rest in their usual order
+    courses.sort(key=lambda c: -c["new"])
+    return render_template("ebwise.html", data=data, courses=courses, general=[i for i in (data or {}).get("general", [])],
+                           general_new=general, total=total)
+
+
+@app.route("/ebwise/<code>")
+@personal_required
+def ebwise_course(code):
+    data, seen = ebwise_state()
+    course = next((c for c in (data or {}).get("courses", []) if c["code"] == code), None)
+    if course is None:
+        abort(404)
+    items = [dict(i, is_new=i["id"] not in seen) for i in course["items"]]
+    # opening a subject counts as reading its notifications
+    ids = {i["id"] for i in course["items"]}
+    if ids - seen:
+        save_json(full(EBWISE_SEEN_PATH), {"seen": sorted(seen | ids)})
+    return render_template("ebwise_course.html", data=data, course=dict(course, color=subject_color(course["code"])), items=items)
+
+
+@app.route("/ebwise/general")
+@personal_required
+def ebwise_general():
+    data, seen = ebwise_state()
+    items = [dict(i, is_new=i["id"] not in seen) for i in (data or {}).get("general", [])]
+    ids = {i["id"] for i in items}
+    if ids - seen:
+        save_json(full(EBWISE_SEEN_PATH), {"seen": sorted(seen | ids)})
+    return render_template("ebwise_course.html", data=data, course={"code": "eBwise", "name": "General notifications", "color": 5, "url": "https://ebwise.mmu.edu.my/"}, items=items)
 
 
 @app.route("/exams")

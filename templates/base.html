@@ -85,6 +85,10 @@
         <a href="{{ url_for('fees') }}" class="rail {{ 'active' if request.endpoint == 'fees' }}" title="Tuition fees">
           {{ icon("wallet") }} <span>Tuition fees</span>
         </a>
+        <a href="{{ url_for('ebwise') }}" class="rail {{ 'active' if request.endpoint and request.endpoint.startswith('ebwise') }}" title="eBwise notifications">
+          <span class="icon-wrap">{{ icon("megaphone") }}{% if ebwise_unseen %}<b class="notif-badge rail-dot">{{ ebwise_unseen }}</b>{% endif %}</span>
+          <span>eBwise notifications</span>{% if ebwise_unseen %}<b class="notif-badge side-count">{{ ebwise_unseen }}</b>{% endif %}
+        </a>
         {% endif %}
 
         <div class="nav-label">Settings</div>
@@ -139,7 +143,8 @@
     <a href="{{ url_for('timetable') }}" class="{{ 'active' if request.endpoint in ('timetable', 'timetable_edit') }}">{{ icon("calendar") }}<span>Timetable</span></a>
     <a href="{{ url_for('reminders') }}" class="{{ 'active' if request.endpoint == 'reminders' }}">{{ icon("bell") }}<span>Reminders</span></a>
     {% if can_personal %}<a href="{{ url_for('exams') }}" class="{{ 'active' if request.endpoint == 'exams' }}">{{ icon("award") }}<span>Exams</span></a>
-    <a href="{{ url_for('fees') }}" class="{{ 'active' if request.endpoint == 'fees' }}">{{ icon("wallet") }}<span>Fees</span></a>{% endif %}
+    <a href="{{ url_for('fees') }}" class="{{ 'active' if request.endpoint == 'fees' }}">{{ icon("wallet") }}<span>Fees</span></a>
+    <a href="{{ url_for('ebwise') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('ebwise') }}"><span class="icon-wrap">{{ icon("megaphone") }}{% if ebwise_unseen %}<b class="notif-badge">{{ ebwise_unseen }}</b>{% endif %}</span><span>eBwise</span></a>{% endif %}
     <a href="{{ url_for('search') }}" class="{{ 'active' if request.endpoint == 'search' }}">{{ icon("search") }}<span>Search</span></a>
     <a href="{{ url_for('settings_page') }}" class="{{ 'active' if request.endpoint == 'settings_page' }}">{{ icon("settings") }}<span>Settings</span></a>
     {% if is_admin %}<a href="{{ url_for('admin') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin') }}">{{ icon("shield") }}<span>Admin</span></a>{% endif %}

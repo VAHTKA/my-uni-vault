@@ -1475,3 +1475,30 @@ textarea.input { border-radius: 18px; }
 
 .portal-card { padding: 18px 22px; }
 .portal-card p { margin: 0; }
+
+/* eBwise notifications: red count badges like an app icon */
+.notif-badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: #e5484d; color: #fff; font-size: 12px; font-weight: 700; line-height: 1; box-shadow: 0 0 0 2px var(--surface); font-style: normal; }
+.icon-wrap { position: relative; display: inline-grid; }
+.rail-dot { position: absolute; top: -7px; right: -9px; min-width: 17px; height: 17px; font-size: 10px; padding: 0 4px; display: none; }
+.side-count { margin-left: auto; }
+@media (max-width: 900px) {
+  .sidebar:not(:has(#menu-toggle:checked)) .side-count { display: none; }
+  .sidebar:not(:has(#menu-toggle:checked)) .rail-dot { display: inline-grid; }
+}
+.tabbar .icon-wrap .notif-badge { position: absolute; top: -6px; right: -10px; min-width: 17px; height: 17px; font-size: 10px; padding: 0 4px; box-shadow: none; }
+.subj { position: relative; }
+.notif-badge.corner { position: absolute; top: -8px; right: -6px; min-width: 24px; height: 24px; font-size: 13px; box-shadow: 0 0 0 3px var(--bg); z-index: 2; }
+.eb-latest { font-size: 12px; opacity: .85; margin-top: 4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.eb-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.eb-list { display: grid; gap: 14px; margin-top: 16px; }
+.eb-item { padding: 18px 20px; }
+.eb-item h3 { font-size: 18px; margin: 8px 0 10px; }
+.eb-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.eb-date { margin-left: auto; font-size: 12px; }
+.eb-type { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.eb-assignment, .eb-quiz { background: #4a2a12; color: #ffc489; }
+:root[data-theme="light"] .eb-assignment, :root[data-theme="light"] .eb-quiz { background: #ffe4c7; color: #7a3410; }
+.eb-new { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #e5484d; color: #fff; }
+.eb-from { display: grid; grid-template-columns: 70px 1fr; gap: 4px 12px; margin: 0 0 14px; }
+.eb-from dt { color: var(--muted); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; padding-top: 2px; }
+.eb-from dd { margin: 0; overflow-wrap: anywhere; }
