@@ -54,6 +54,15 @@
 </div>
 {% endfor %}
 
-<p class="muted small portal-note">Copied from the university portal (CLiC) on {{ portal.synced | nice_date }}. This is not an official document.</p>
+<div class="section-title">Exam timetable</div>
+<div class="card portal-card">
+  {% if portal.exam_timetable and portal.exam_timetable.viewable %}
+  <p>{{ portal.exam_timetable.text }}</p>
+  {% else %}
+  <p class="muted">Not published yet. It will show here as soon as the university releases it.</p>
+  {% endif %}
+</div>
+
+<p class="muted small portal-note">Copied from the university portal (CLiC){% if portal.checked %}, last checked {{ portal.checked | local_dt }}{% else %} on {{ portal.synced | nice_date }}{% endif %}. This is not an official document.</p>
 {% endif %}
 {% endblock %}

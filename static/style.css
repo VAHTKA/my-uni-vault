@@ -1472,3 +1472,6 @@ textarea.input { border-radius: 18px; }
   .tabbar::-webkit-scrollbar { display: none; }
   .tabbar a { flex: 1 0 62px; }
 }
+
+.portal-card { padding: 18px 22px; }
+.portal-card p { margin: 0; }

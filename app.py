@@ -1491,6 +1491,11 @@ def money(value):
     return f"{float(value or 0):,.2f}"
 
 
+@app.template_filter("local_dt")
+def local_dt(value):
+    return local_time(value, load_settings()["utc_offset"])
+
+
 @app.route("/exams")
 @personal_required
 def exams():

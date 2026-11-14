@@ -54,6 +54,6 @@
   </table>
 </div>
 
-<p class="muted small portal-note">Copied from the university portal (CLiC) on {{ portal.synced | nice_date }}. Invoice {{ f.invoice.number }}. Check CLiC before paying: it is the official record.</p>
+<p class="muted small portal-note">Copied from the university portal (CLiC){% if portal.checked %}, last checked {{ portal.checked | local_dt }}{% else %} on {{ portal.synced | nice_date }}{% endif %}. Invoice {{ f.invoice.number }}. Check CLiC before paying: it is the official record.</p>
 {% endif %}
 {% endblock %}
