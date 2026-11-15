@@ -45,6 +45,17 @@
         input.dispatchEvent(new Event("change"));
       });
     });
+
+    // Personal timetable, viewing this week: bring today's column and the
+    // current hour into view automatically, so there's nothing to scroll for.
+    root.querySelectorAll('.tt-scroll[data-tt="personal"][data-this-week="true"]').forEach(function (scroll) {
+      var today = scroll.querySelector(".tt-day.is-today");
+      var row = scroll.querySelector("#t-" + new Date().getHours());
+      if (today) today.scrollIntoView({ inline: "center", block: "nearest" });
+      requestAnimationFrame(function () {
+        if (row) row.scrollIntoView({ block: "start" });
+      });
+    });
   }
   init(document);
 

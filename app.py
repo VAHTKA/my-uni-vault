@@ -1366,6 +1366,7 @@ def timetable():
         rows.append({"label": "Anytime", "cells": [[e for e in d["entries"] if not e["start"]] for d in shown]})
     for h in range(lo, hi + 1):
         rows.append({
+            "hour": h,
             "label": time12(f"{h:02d}:00"),
             "cells": [[e for e in d["entries"] if e["start"] and int(e["start"][:2]) == h] for d in shown],
         })
@@ -1378,12 +1379,21 @@ def timetable():
         d["reminders"] = sum(1 for r in reminders if r["date"] == d["date"] and not r["done"])
 
     this_week = week_start(today)
+    is_this_week = start == this_week
+
+    # On the personal timetable, the phone agenda starts from today so there's
+    # no need to scroll past earlier days just to see what's happening now.
+    agenda_days = days
+    if kind == "personal" and is_this_week:
+        idx = next(i for i, d in enumerate(days) if d["is_today"])
+        agenda_days = days[idx:] + days[:idx]
+
     return render_template(
-        "timetable.html", tt=kind, days=days, reminder_groups=reminder_groups(reminders, today), today=today.isoformat(), shown=shown, rows=rows, week_label=week_label, entry_types=ENTRY_TYPES,
+        "timetable.html", tt=kind, days=days, agenda_days=agenda_days, reminder_groups=reminder_groups(reminders, today), today=today.isoformat(), shown=shown, rows=rows, week_label=week_label, entry_types=ENTRY_TYPES,
         week=start.isoformat(),
         prev_week=(start - timedelta(days=7)).isoformat(),
         next_week=(start + timedelta(days=7)).isoformat(),
-        is_this_week=start == this_week, is_next_week=start == this_week + timedelta(days=7),
+        is_this_week=is_this_week, is_next_week=start == this_week + timedelta(days=7),
         this_week=this_week.isoformat(),
         total=sum(len(d["entries"]) for d in days),
     )

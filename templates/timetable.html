@@ -58,7 +58,7 @@
     <span class="tt-head-icon">{{ icon("clock") }}</span>
     <h2>{{ "Personal Weekly Timetable" if tt else "Weekly Timetable" }}</h2>
   </div>
-  <div class="tt-scroll">
+  <div class="tt-scroll" data-tt="{{ tt }}" data-this-week="{{ 'true' if is_this_week else 'false' }}">
     <div class="tt-grid" style="--cols: {{ shown | length }}{{ '; --col-min: 128px' if shown | length > 5 }}">
       <div class="tt-corner">Time</div>
       {% for day in shown %}
@@ -69,7 +69,7 @@
       {% endfor %}
 
       {% for row in rows %}
-      <div class="tt-time">{{ row.label }}</div>
+      <div class="tt-time"{% if row.hour is defined %} id="t-{{ row.hour }}"{% endif %}>{{ row.label }}</div>
       {% for cell in row.cells %}
       <div class="tt-cell">
         {% for e in cell %}
@@ -83,7 +83,7 @@
 </div>
 
 <div class="tt-agenda">
-  {% for day in days if day.entries %}
+  {% for day in agenda_days if day.entries %}
   <section class="tt-agenda-day">
     <h3 class="{{ 'is-today' if day.is_today }}">{{ day.weekday }} <span>{{ day.label }}</span></h3>
     {% for e in day.entries %}{{ card(e, True) }}{% endfor %}

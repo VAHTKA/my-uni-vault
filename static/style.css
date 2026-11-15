@@ -1006,7 +1006,7 @@ img.avatar { object-fit: cover; background: var(--surface-2); }
 .tt-day span { display: block; font-weight: 500; font-size: 11px; color: var(--muted); }
 .tt-day.is-today { background: var(--accent); color: #fff; }
 .tt-day.is-today span { color: rgba(255, 255, 255, .85); }
-.tt-time { display: flex; align-items: flex-start; justify-content: center; padding-top: 10px; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--surface-2); border-radius: 8px; }
+.tt-time { display: flex; align-items: flex-start; justify-content: center; padding-top: 10px; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--surface-2); border-radius: 8px; scroll-margin-top: 120px; }
 .tt-cell { display: grid; gap: 6px; align-content: start; min-height: 58px; min-width: 0; }
 .tt-entry {
   --bg: #d5f3e6; --fg: #14532d;
